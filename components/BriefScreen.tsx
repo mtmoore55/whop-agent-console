@@ -6,19 +6,10 @@ import { ObservationCard } from './ObservationCard'
 import { StateStrip } from './StateStrip'
 import { AppShell } from './AppShell'
 import { AgentBar } from './AgentBar'
-import { GoalStrip } from './GoalStrip'
-import { MemoryPanel } from './MemoryPanel'
-import { Eyebrow } from './ui'
-import { count } from '@/lib/format'
 import { useConsole } from '@/lib/store'
 
 export function BriefScreen() {
-  const { brief, statusOf } = useConsole()
-
-  const actions = brief.proposals.filter((p) => p.kind === 'action')
-  const decided = actions.filter(
-    (p) => statusOf(p.id) === 'executed' || statusOf(p.id) === 'rejected',
-  )
+  const { brief } = useConsole()
 
   return (
     <AppShell>
@@ -35,31 +26,12 @@ export function BriefScreen() {
           </div>
         </section>
 
-        <section className="mb-4">
-          <GoalStrip />
-        </section>
-
-        <section className="mb-4">
+        <section className="mb-5 sm:mb-6">
           <StateStrip />
         </section>
 
-        <section className="mb-4">
-          <BatchBar />
-        </section>
-
-        <section className="mb-7 sm:mb-9">
-          <MemoryPanel compact />
-        </section>
-
         <section>
-          <div className="mb-3.5 flex items-baseline justify-between gap-3">
-            <Eyebrow className="text-mute">
-              {count(brief.proposals.length)} items · {count(actions.length)} decisions
-            </Eyebrow>
-            <span className="num text-[12px] text-faint">
-              {count(decided.length)}/{count(actions.length)} decided
-            </span>
-          </div>
+          <BatchBar />
 
           <div className="space-y-3">
             {brief.proposals.map((p, i) =>

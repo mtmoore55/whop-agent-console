@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { ACTION_LABELS } from '@/lib/policy'
 import { hardNos } from '@/lib/memory'
 import { useConsole } from '@/lib/store'
@@ -10,17 +9,11 @@ import { Btn, Eyebrow, Tag } from './ui'
  * Milestone 4. Every rejection and its one-word reason is kept and handed back
  * to the agent on the next run, so the gate trains the thing it is gating.
  */
-export function MemoryPanel({ compact = false }: { compact?: boolean }) {
+export function MemoryPanel() {
   const { memory, forgetMemory, agent } = useConsole()
   const heldBack = agent.heldBack ?? []
   const standing = new Set(hardNos(memory))
-  // On the Brief this sits above the proposals, so it stays short. A rejection
-  // made just now is newest-first, so the "watch it learn" moment survives.
-  const shown = compact ? memory.slice(0, 3) : memory
-  const hidden = memory.length - shown.length
-
   if (memory.length === 0 && heldBack.length === 0) {
-    if (compact) return null
     return (
       <div className="rounded-xl border border-dashed border-line bg-card/50 px-4 py-3.5">
         <Eyebrow className="mb-1.5">Agent memory</Eyebrow>
@@ -46,7 +39,7 @@ export function MemoryPanel({ compact = false }: { compact?: boolean }) {
       </div>
 
       <ul className="divide-y divide-line-soft">
-        {shown.map((m) => (
+        {memory.map((m) => (
           <li key={m.id} className="flex items-start gap-x-3 px-4 py-2.5">
             <div className="min-w-0 flex-1">
               {/* The proposal leads, so two rejections of the same action type
@@ -69,14 +62,6 @@ export function MemoryPanel({ compact = false }: { compact?: boolean }) {
           </li>
         ))}
       </ul>
-
-      {hidden > 0 && (
-        <div className="border-t border-line-soft px-4 py-2.5">
-          <Link href="/console" className="text-[13px] text-faint transition-colors hover:text-ink">
-            {hidden} more on the Console →
-          </Link>
-        </div>
-      )}
 
       {heldBack.length > 0 && (
         <div className="border-t border-line-soft bg-raise px-4 py-3">

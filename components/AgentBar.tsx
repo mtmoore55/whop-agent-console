@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { clockTime } from '@/lib/format'
 import { useConsole } from '@/lib/store'
 import { Btn, Tag } from './ui'
@@ -21,7 +22,7 @@ function SourceChip() {
 }
 
 export function AgentBar() {
-  const { brief, agent, runAgent } = useConsole()
+  const { brief, agent, runAgent, memory } = useConsole()
   const running = agent.state === 'running'
 
   return (
@@ -42,6 +43,16 @@ export function AgentBar() {
         <Tag tone="red">
           {agent.dropped} dropped
         </Tag>
+      )}
+
+      {memory.length > 0 && (
+        <Link
+          href="/console"
+          className="text-[13px] text-faint transition-colors hover:text-ink"
+          title="What the agent has learned from your rejections"
+        >
+          {memory.length} learned →
+        </Link>
       )}
 
       <Btn

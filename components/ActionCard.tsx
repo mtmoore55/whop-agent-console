@@ -119,23 +119,12 @@ export function ActionCard({ action, index }: { action: ProposedAction; index: n
                 </ul>
               </div>
 
-              <div className="space-y-4 sm:min-w-[190px] sm:border-l sm:border-line-soft sm:pl-5">
-                <div>
-                  <Eyebrow className="mb-2">If it works</Eyebrow>
-                  <div className="text-[13px] leading-snug text-faint">
-                    {action.expectedImpact.metric}
-                  </div>
-                  <div className="num mt-1.5 text-[16px] font-semibold tracking-[-0.02em] text-ink">
-                    {action.expectedImpact.direction === 'up' ? '↑' : '↓'}{' '}
-                    {action.expectedImpact.estimate}
-                  </div>
-                  <div className="eyebrow mt-1.5 text-faint">
-                    {action.expectedImpact.confidence} confidence
-                  </div>
-                </div>
-
-                {action.goalContribution && (
-                  <div className="border-t border-line-soft pt-3.5">
+              {/* One estimate, not two. Contribution to the goal is the only
+                  one comparable across proposals, so it leads and the raw
+                  impact becomes its caption. */}
+              <div className="sm:min-w-[190px] sm:border-l sm:border-line-soft sm:pl-5">
+                {action.goalContribution ? (
+                  <>
                     <Eyebrow className="mb-2">Toward {goal.label}</Eyebrow>
                     <div
                       className={`num text-[16px] font-semibold tracking-[-0.02em] ${
@@ -147,16 +136,31 @@ export function ActionCard({ action, index }: { action: ProposedAction; index: n
                         ? `+${money(action.goalContribution.monthlyDelta)}/mo`
                         : 'holds the line'}
                     </div>
-                    {action.goalContribution.monthlyDelta > 0 && pace.gap > 0 && (
-                      <div className="num mt-1.5 text-[12px] text-faint">
-                        {shareOfGap(action.goalContribution.monthlyDelta, pace).toFixed(1)}% of the
-                        gap
-                      </div>
-                    )}
-                    <div className="mt-1.5 text-[11.5px] leading-snug text-faint">
-                      agent&apos;s estimate
+                    <div className="num mt-1.5 text-[12px] text-faint">
+                      {action.goalContribution.monthlyDelta > 0 && pace.gap > 0
+                        ? `${shareOfGap(action.goalContribution.monthlyDelta, pace).toFixed(1)}% of the gap · agent's estimate`
+                        : "agent's estimate"}
                     </div>
-                  </div>
+                    <div className="mt-3 border-t border-line-soft pt-2.5 text-[12px] leading-snug text-faint">
+                      {action.expectedImpact.metric}{' '}
+                      {action.expectedImpact.direction === 'up' ? '↑' : '↓'}{' '}
+                      {action.expectedImpact.estimate} · {action.expectedImpact.confidence}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Eyebrow className="mb-2">If it works</Eyebrow>
+                    <div className="text-[13px] leading-snug text-faint">
+                      {action.expectedImpact.metric}
+                    </div>
+                    <div className="num mt-1.5 text-[16px] font-semibold tracking-[-0.02em] text-ink">
+                      {action.expectedImpact.direction === 'up' ? '↑' : '↓'}{' '}
+                      {action.expectedImpact.estimate}
+                    </div>
+                    <div className="eyebrow mt-1.5 text-faint">
+                      {action.expectedImpact.confidence} confidence
+                    </div>
+                  </>
                 )}
               </div>
             </div>

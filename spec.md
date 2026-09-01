@@ -165,8 +165,18 @@ lives in `components/nav-items.ts`; giving an item an `href` is all it takes to 
 The morning digest, and the first thing anyone sees.
 
 - One-sentence lede: the thing that changed
-- A compact state-of-business strip (MRR, churn, CAC, balance, open issues) — glanceable, not a dashboard
+- A compact state-of-business strip (MRR/goal, churn, CAC, balance, open issues) — glanceable, not a dashboard
 - The proposed actions as a stack of cards
+
+**One strip, not four.** Each feature arrived as its own panel — goal, state, standing
+policy, agent memory — and by M4 you could not see a single proposal without scrolling on a
+1100px window. The product is the approval gate; a dashboard above the fold buries it.
+So: the goal folded into the state strip's first cell, the standing-policy paragraph moved
+to the Console where the settings already live, agent memory moved to the Console entirely
+(decided history has no business sitting above undecided work) with a count in the agent
+bar, and the counts and batch control collapsed onto one line. Per card, the two estimates
+merged — contribution to the goal is the only one comparable across proposals, so it leads
+and the raw impact is its caption.
 
 Each card shows headline, rationale, the evidence it rests on, and — before any
 interaction — the three numbers that decide whether you should say yes: **max cost,
@@ -180,7 +190,9 @@ a text box. A batch control approves everything auto-eligible, showing combined 
 ### 4.1a The goal
 
 `Goal { metric, target, byISO }` — set on the Console, and the thing the agent is
-actually working toward. It changes three things:
+actually working toward. It lives **inside the state strip**, not above it: as its own
+panel it pushed the proposals below the fold and printed MRR twice. It changes three
+things:
 
 - **Pace is derived, never asserted** (`lib/goal.ts`). Growth compounds, so months-to-goal
   is `ln(target/current) / ln(1+g)`, not a linear division — over a year the difference is
