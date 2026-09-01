@@ -42,7 +42,7 @@ exists. Design accordingly.
 
 | # | Decision | Rationale |
 | --- | --- | --- |
-| D1 | Model id is **`claude-sonnet-5`**, not the brief's `claude-sonnet-4-6` | `claude-sonnet-4-6` is not a real model id. Revisit at M2; pin via `ANTHROPIC_MODEL` env with `claude-sonnet-5` as default. |
+| D1 | Model id is the brief's **`claude-sonnet-4-6`**, overridable via `ANTHROPIC_MODEL` | *Corrected at M2.* An earlier note here claimed `claude-sonnet-4-6` was not a real model id. It is. The brief's choice stands. |
 | D2 | **Whop's own design tokens**, read off the live dashboard: gray-1 `#111111` ground, gray-2 `#191919` card, gray-4 `#2a2a2a` line, gray-12 `#eeeeee` ink, gray-11/10 for secondary text. Primary action is blue-9 `#1754d8`; brand orange `#FA4616` is the mark and the agent, never a button; red-11 `#ff9081` for over-limit and blocked; amber for conflicts. Radii 6/8/12. | Supersedes the brief's "adjacent, don't clone" line at the user's explicit direction: the console should read as part of Whop, not next to it |
 | D3 | Type: **Inter**, as the dashboard uses. Numerals are Inter with `tabular-nums`, not a mono face. Body 14px / `-0.005625em`; titles 600 weight / `-0.037em`. | Matching Whop means matching its type, including the absence of a mono numeric face |
 | D3a | The real Whop lockup ships in `components/WhopMark.tsx` (orange chevrons + `currentColor` wordmark) | Explicitly requested; the prototype is a Whop-surface concept, so it carries the mark |
@@ -177,7 +177,7 @@ Each card has **Approve / Modify / Reject**. Reject asks for a one-word reason (
 feeds M4's memory). Modify opens an inline editor of the action's actual parameters, not
 a text box. A batch control approves everything auto-eligible, showing combined cost first.
 
-### 4.2 The Console (`/console`) — M3
+### 4.2 The Console (`/console`)
 
 - Per-action-type policy: auto-approve / ask me / never
 - Daily agent spend cap, with today's remaining budget shown against it
@@ -188,12 +188,18 @@ a text box. A batch control approves everything auto-eligible, showing combined 
 Enforcement must be visibly real: an over-cap proposal shows as blocked, names the rule,
 and offers a one-time override.
 
-### 4.3 The Log (`/log`) — M3
+### 4.3 The Log (`/log`)
 
 Every action ever proposed with its full lifecycle: proposed → approved/modified/rejected
 → executed → outcome. Each executed action gets a receipt of what changed in the business
 state, and where `reversibility === 'instant'`, a working **Undo** that actually reverts.
 This screen is what makes the other two trustworthy. Don't stub it.
+
+**Undo replays.** Restoring an entry's `stateBefore` alone would silently discard every
+action taken after it. Instead Undo restores that snapshot and then re-applies every later
+executed, non-undone entry in order, refreshing each of their snapshots as it goes — so a
+second undo afterwards is still correct. Only `instant` actions offer it; `costly` and
+`irreversible` ones say plainly that undo here would be a lie.
 
 ---
 
@@ -216,7 +222,7 @@ webhook errors recommending more data before acting.
 
 ---
 
-## 6. The agent — M2
+## 6. The agent
 
 A single server route, `POST /api/digest`, sending `BusinessState` to Claude with a system
 prompt that:
@@ -295,22 +301,29 @@ What the brief asked for still holds inside that system:
 - [x] Mobile: bottom bar under 768px, 2-up stat grid, cost type scales with the viewport
 - [x] `next build` clean, lint clean, deployable
 
-### Milestone 2 — the live agent
-- [ ] `POST /api/digest` with `@anthropic-ai/sdk`, server-side only
-- [ ] System prompt per §6
-- [ ] Zod validation, fence stripping, malformed-action drop
-- [ ] Cached fallback JSON + automatic fallback on error/timeout
-- [ ] Honest Live/Cached indicator
+### Milestone 2 — the live agent ✅
+- [x] `POST /api/digest` with `@anthropic-ai/sdk`, server-side only, 30s budget
+- [x] System prompt per §6 (`lib/agent/prompt.ts`)
+- [x] Zod validation, fence stripping, per-proposal malformed drop (`lib/agent/parse.ts`)
+- [x] Cached fallback (`lib/agent/cached-brief.json`) — **model-shaped**, so it runs through
+      the identical validator and can never drift from what live produces
+- [x] Automatic fallback on missing key, API error, refusal, timeout, or unparseable output
+- [x] Honest Live/Cached indicator naming the model, plus the reason cached ran
 
-### Milestone 3 — console + log
-- [ ] `/console` with editable policy and live plain-language rendering
-- [ ] `/log` with full lifecycle and receipts
-- [ ] Working Undo for `instant` actions — the store already snapshots `stateBefore` per entry
-- [ ] Drop the "Soon" badges in the rail and route Console + Log (`components/nav-items.ts`)
+### Milestone 3 — console + log ✅
+- [x] `/console`: per-type stance, three limits, live plain-language rendering
+- [x] Live enforcement preview — what this policy does to today's undecided proposals
+- [x] `/log` with full lifecycle chips, receipts, and totals
+- [x] Working Undo for `instant` actions, with replay (see below)
+- [x] Console and Log routed in the rail and the mobile bottom bar
 
-### Milestone 4 — rejection memory (only if time)
-- [ ] Rejected actions + reasons feed the next digest's system prompt
-- [ ] The agent visibly stops proposing things this owner doesn't want
+### Milestone 4 — rejection memory ✅
+- [x] Rejections + reasons become memory (`lib/memory.ts`), derived from the log
+- [x] Live: memory is injected into the system prompt as "what this owner has already told you"
+- [x] Cached: the same intent applied mechanically — a rejected action type is withheld and
+      **reported as withheld**, never silently dropped
+- [x] "Learned from you" panel on the Brief and Console, with per-entry Forget
+- [x] An action type rejected twice is marked a standing no
 
 ---
 
@@ -323,12 +336,14 @@ Vercel deployments are immutable, so **every milestone keeps a permanent URL**. 
 gets a git tag and an alias pinned to that exact build; nothing deployed later can move it
 unless the alias is re-pointed on purpose.
 
+M2, M3 and M4 were built and shipped as a single increment, so they share one tag and one
+URL rather than three. There is no `-m2` or `-m3` alias, because there was never a build
+that was only M2 or only M3 — inventing one would make the URLs lie about the history.
+
 | URL | Tag | What it serves |
 | --- | --- | --- |
 | `whop-agent-console-m1.vercel.app` | `milestone-1` | M1, frozen |
-| `whop-agent-console-m2.vercel.app` | `milestone-2` | — |
-| `whop-agent-console-m3.vercel.app` | `milestone-3` | — |
-| `whop-agent-console-m4.vercel.app` | `milestone-4` | — |
+| `whop-agent-console-m4.vercel.app` | `milestone-4` | M2 + M3 + M4 — the finished prototype |
 | `whop-agent-console.vercel.app` | — | production; moves only on request |
 
 To cut a milestone:
@@ -342,6 +357,17 @@ npx vercel alias set <deployment-url> whop-agent-console.vercel.app   # only whe
 
 No auth, no deployment protection: all URLs return 200 anonymously, which is the point —
 this gets opened on a phone at odd hours.
+
+**The deployment has no `ANTHROPIC_API_KEY`, so the agent always serves the cached brief**
+and says so on screen. That is the designed behaviour, not a failure. To turn on the live
+path, add the key to the Vercel project yourself and redeploy:
+
+```bash
+npx vercel env add ANTHROPIC_API_KEY production   # paste the key when prompted
+npx vercel deploy --prod --yes
+```
+
+Optionally set `ANTHROPIC_MODEL` alongside it to override `claude-sonnet-4-6`.
 
 `vercel link` could not attach the GitHub repo (the Vercel GitHub App is not installed on
 it), so pushes do not auto-deploy. Deploys are CLI-driven, which is what keeps the

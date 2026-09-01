@@ -23,8 +23,8 @@ export const NAV_SECTIONS: NavSection[] = [
     label: 'Agent',
     items: [
       { label: 'Brief', icon: 'brief', href: '/' },
-      { label: 'Console', icon: 'console', badge: { text: 'Soon', tone: 'gray' } },
-      { label: 'Log', icon: 'log', badge: { text: 'Soon', tone: 'gray' } },
+      { label: 'Console', icon: 'console', href: '/console' },
+      { label: 'Log', icon: 'log', href: '/log' },
     ],
   },
   {

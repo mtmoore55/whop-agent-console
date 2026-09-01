@@ -5,8 +5,10 @@ import { BatchBar } from './BatchBar'
 import { ObservationCard } from './ObservationCard'
 import { StateStrip } from './StateStrip'
 import { AppShell } from './AppShell'
-import { Eyebrow, Tag } from './ui'
-import { clockTime, count } from '@/lib/format'
+import { AgentBar } from './AgentBar'
+import { MemoryPanel } from './MemoryPanel'
+import { Eyebrow } from './ui'
+import { count } from '@/lib/format'
 import { useConsole } from '@/lib/store'
 
 export function BriefScreen() {
@@ -21,12 +23,8 @@ export function BriefScreen() {
     <AppShell>
       <div className="mx-auto max-w-[1120px] px-4 pb-24 pt-7 sm:px-6 sm:pt-10">
         <section className="mb-7 sm:mb-9">
-          <div className="mb-4 flex flex-wrap items-center gap-x-2.5 gap-y-2">
-            <Tag tone="brand">Agent</Tag>
-            <span className="text-[13px] text-faint">
-              Daily brief · generated {clockTime(brief.generatedAtISO)} ·{' '}
-              {brief.source === 'seed' ? 'seeded' : brief.source} data
-            </span>
+          <div className="mb-4">
+            <AgentBar />
           </div>
 
           <div className="border-l-2 border-brand pl-4 sm:pl-5">
@@ -40,8 +38,12 @@ export function BriefScreen() {
           <StateStrip />
         </section>
 
-        <section className="mb-7 sm:mb-9">
+        <section className="mb-4">
           <BatchBar />
+        </section>
+
+        <section className="mb-7 sm:mb-9">
+          <MemoryPanel compact />
         </section>
 
         <section>

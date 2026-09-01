@@ -14,11 +14,14 @@ import { derive } from './derive'
 import { execute } from './execute'
 import { DEFAULT_POLICY, evaluate } from './policy'
 import { freshBrief, type Brief } from './proposals'
+import { memoryFromLog, type MemoryEntry } from './memory'
 import { freshState } from './seed'
 import type {
+  ActionType,
   BusinessState,
   LogEntry,
   Policy,
+  PolicyStance,
   Proposal,
   ProposalStatus,
   ProposedAction,
@@ -42,7 +45,24 @@ interface ConsoleState {
   log: LogEntry[]
   /** Rail collapse. A workspace preference, so Reset demo leaves it alone. */
   navCollapsed: boolean
+  /** Memory entries the owner has explicitly told the agent to forget. */
+  forgottenMemoryIds: string[]
+  agent: AgentStatus
   hydrated: boolean
+}
+
+export interface AgentStatus {
+  state: 'idle' | 'running' | 'done'
+  /** Which path produced the brief on screen. */
+  mode?: 'live' | 'cached'
+  model?: string
+  /** Why the cached path ran, when it did. */
+  reason?: string
+  /** Proposals the model returned that failed validation. */
+  dropped?: number
+  /** Whether rejection memory reached the agent, and how. */
+  memoryApplied?: 'prompt' | 'filter' | 'none'
+  heldBack?: { type: ActionType; reason: string; headline: string }[]
 }
 
 function initial(): ConsoleState {
@@ -56,6 +76,8 @@ function initial(): ConsoleState {
     overriddenIds: [],
     log: [],
     navCollapsed: false,
+    forgottenMemoryIds: [],
+    agent: { state: 'idle' },
     hydrated: false,
   }
 }
@@ -73,7 +95,12 @@ interface Persisted {
   overriddenIds: string[]
   log: LogEntry[]
   params: Record<string, Record<string, unknown>>
+  policy: Policy
   navCollapsed: boolean
+  forgottenMemoryIds: string[]
+  /** A live/cached brief is kept whole; the seeded one is rebuilt from code. */
+  brief: Brief | null
+  agent: AgentStatus
 }
 
 function toPersisted(s: ConsoleState): Persisted {
@@ -90,7 +117,11 @@ function toPersisted(s: ConsoleState): Persisted {
     overriddenIds: s.overriddenIds,
     log: s.log,
     params,
+    policy: s.policy,
     navCollapsed: s.navCollapsed,
+    forgottenMemoryIds: s.forgottenMemoryIds,
+    brief: s.brief.source === 'seed' ? null : s.brief,
+    agent: s.agent,
   }
 }
 
@@ -123,13 +154,16 @@ function withParams(
 
 function fromPersisted(p: Persisted): ConsoleState {
   const base = initial()
-  let proposals = base.brief.proposals
+  // An agent-generated brief is data, not code, so it round-trips verbatim.
+  const policy = p.policy ?? base.policy
+  const brief = p.brief ?? base.brief
+  let proposals = brief.proposals
   const modifiedIds: string[] = []
 
   for (const [id, params] of Object.entries(p.params ?? {})) {
     // A proposal that no longer exists in the brief just drops its overrides.
     if (!proposals.some((x) => x.id === id)) continue
-    proposals = withParams(proposals, id, params, p.state, base.policy)
+    proposals = withParams(proposals, id, params, p.state, policy)
     modifiedIds.push(id)
   }
 
@@ -142,13 +176,16 @@ function fromPersisted(p: Persisted): ConsoleState {
   return {
     ...base,
     state: p.state ?? base.state,
-    brief: { ...base.brief, proposals },
+    policy,
+    brief: { ...brief, proposals },
     statuses,
     rejectionReasons: p.rejectionReasons ?? {},
     modifiedIds,
     overriddenIds: p.overriddenIds ?? [],
     log: p.log ?? [],
     navCollapsed: p.navCollapsed ?? false,
+    forgottenMemoryIds: p.forgottenMemoryIds ?? [],
+    agent: p.agent ?? { state: 'idle' },
     hydrated: true,
   }
 }
@@ -162,6 +199,13 @@ type Msg =
   | { t: 'modify'; id: string; params: Record<string, unknown> }
   | { t: 'override'; id: string }
   | { t: 'toggleNav' }
+  | { t: 'agentRunning' }
+  | { t: 'agentDone'; brief: Brief; agent: AgentStatus }
+  | { t: 'agentFailed' }
+  | { t: 'forgetMemory'; id: string }
+  | { t: 'setPolicy'; patch: Partial<Policy> }
+  | { t: 'setStance'; actionType: ActionType; stance: PolicyStance }
+  | { t: 'undo'; id: string }
   | { t: 'reset' }
 
 function statusOf(s: ConsoleState, id: string): ProposalStatus {
@@ -271,6 +315,78 @@ function reducer(s: ConsoleState, m: Msg): ConsoleState {
     case 'toggleNav':
       return { ...s, navCollapsed: !s.navCollapsed }
 
+    case 'agentRunning':
+      return { ...s, agent: { ...s.agent, state: 'running' } }
+
+    case 'agentDone':
+      // A new brief means new proposal ids; decisions on the old one already
+      // live in the log, so the working set starts clean.
+      return {
+        ...s,
+        brief: m.brief,
+        agent: m.agent,
+        statuses: {},
+        rejectionReasons: {},
+        modifiedIds: [],
+        overriddenIds: [],
+      }
+
+    case 'agentFailed':
+      return { ...s, agent: { ...s.agent, state: 'done' } }
+
+    case 'forgetMemory':
+      return {
+        ...s,
+        forgottenMemoryIds: s.forgottenMemoryIds.includes(m.id)
+          ? s.forgottenMemoryIds
+          : [...s.forgottenMemoryIds, m.id],
+      }
+
+    case 'setPolicy':
+      return { ...s, policy: { ...s.policy, ...m.patch } }
+
+    case 'setStance':
+      return {
+        ...s,
+        policy: { ...s.policy, perType: { ...s.policy.perType, [m.actionType]: m.stance } },
+      }
+
+    case 'undo': {
+      // The log is newest-first, so anything at a lower index happened later.
+      const idx = s.log.findIndex((e) => e.id === m.id)
+      const entry = s.log[idx]
+      if (!entry || entry.undone || !entry.stateBefore) return s
+      if (entry.reversibility !== 'instant') return s
+
+      let state = entry.stateBefore
+      const log = [...s.log]
+
+      // Replay everything that happened after it, so undoing an older action
+      // does not silently drop the ones stacked on top of it. Each replayed
+      // entry gets a fresh snapshot, keeping later undos correct too.
+      for (let i = idx - 1; i >= 0; i--) {
+        const later = log[i]
+        if (later.undone || !later.lifecycle.includes('executed')) continue
+        const replayed = {
+          type: later.type,
+          params: later.params,
+          maxCost: later.maxCost,
+          reversibility: later.reversibility,
+        } as unknown as ProposedAction
+        log[i] = { ...later, stateBefore: state }
+        state = execute(replayed, state).state
+      }
+
+      log[idx] = { ...entry, undone: true }
+
+      const statuses = { ...s.statuses }
+      if (s.brief.proposals.some((p) => p.id === entry.proposalId)) {
+        statuses[entry.proposalId] = 'pending'
+      }
+
+      return { ...s, state, log, statuses }
+    }
+
     case 'reset':
       return { ...initial(), hydrated: true, navCollapsed: s.navCollapsed }
   }
@@ -283,6 +399,13 @@ interface ConsoleApi extends ConsoleState {
   modify: (id: string, params: Record<string, unknown>) => void
   override: (id: string) => void
   toggleNav: () => void
+  setPolicy: (patch: Partial<Policy>) => void
+  setStance: (actionType: ActionType, stance: PolicyStance) => void
+  resetPolicy: () => void
+  undo: (id: string) => void
+  runAgent: () => void
+  memory: MemoryEntry[]
+  forgetMemory: (id: string) => void
   reset: () => void
   statusOf: (id: string) => ProposalStatus
   verdictOf: (action: ProposedAction) => PolicyVerdict
@@ -328,6 +451,46 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
     timers.current.push(handle)
   }, [])
 
+  const runAgent = useCallback(async (payload: {
+    state: BusinessState
+    policy: Policy
+    memory: MemoryEntry[]
+  }) => {
+    dispatch({ t: 'agentRunning' })
+    try {
+      const res = await fetch('/api/digest', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error(`digest route returned ${res.status}`)
+      const data = await res.json()
+
+      dispatch({
+        t: 'agentDone',
+        brief: {
+          generatedAtISO: new Date().toISOString(),
+          lede: data.lede,
+          source: data.mode,
+          proposals: data.proposals,
+        },
+        agent: {
+          state: 'done',
+          mode: data.mode,
+          model: data.model,
+          reason: data.reason,
+          dropped: data.dropped,
+          memoryApplied: data.memoryApplied,
+          heldBack: data.heldBack ?? [],
+        },
+      })
+    } catch {
+      // The route itself falls back to cached, so reaching here means the
+      // network did. Keep the brief on screen rather than blanking it.
+      dispatch({ t: 'agentFailed' })
+    }
+  }, [])
+
   const api = useMemo<ConsoleApi>(() => {
     const verdictOf = (action: ProposedAction) =>
       evaluate(action, s.policy, s.state.agentSpendToday)
@@ -339,14 +502,25 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
         verdictOf(p).decision === 'auto',
     )
 
+    const memory = memoryFromLog(s.log, s.forgottenMemoryIds)
+
     return {
       ...s,
+      memory,
       approve: (id) => approveMany([id]),
       approveMany,
       reject: (id, reason) => dispatch({ t: 'reject', id, reason }),
       modify: (id, params) => dispatch({ t: 'modify', id, params }),
       override: (id) => dispatch({ t: 'override', id }),
       toggleNav: () => dispatch({ t: 'toggleNav' }),
+      runAgent: () => {
+        void runAgent({ state: s.state, policy: s.policy, memory })
+      },
+      forgetMemory: (id) => dispatch({ t: 'forgetMemory', id }),
+      setPolicy: (patch) => dispatch({ t: 'setPolicy', patch }),
+      setStance: (actionType, stance) => dispatch({ t: 'setStance', actionType, stance }),
+      resetPolicy: () => dispatch({ t: 'setPolicy', patch: DEFAULT_POLICY }),
+      undo: (id) => dispatch({ t: 'undo', id }),
       reset: () => {
         try {
           window.localStorage.removeItem(STORAGE_KEY)
@@ -359,7 +533,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       verdictOf,
       autoEligible,
     }
-  }, [s, approveMany])
+  }, [s, approveMany, runAgent])
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>
 }
