@@ -11,6 +11,7 @@ import { ModifyPanel } from './ModifyPanel'
 import { Receipt } from './Receipt'
 import { RiskRow } from './RiskRow'
 import { Btn, Eyebrow, Tag } from './ui'
+import { SparkButton } from './AiChat'
 
 const REJECT_REASONS = ['risky', 'timing', 'too-broad', 'too-costly', 'not-now']
 
@@ -78,13 +79,25 @@ export function ActionCard({ action, index }: { action: ProposedAction; index: n
       </div>
 
       <div className="space-y-4 p-4 sm:p-5">
-        <h2
-          className={`title text-[19px] leading-[1.25] sm:text-[21px] ${
-            status === 'rejected' ? 'text-mute' : 'text-ink'
-          }`}
-        >
-          {action.headline}
-        </h2>
+        <div className="group/cell flex items-start justify-between gap-3">
+          <h2
+            className={`title text-[19px] leading-[1.25] sm:text-[21px] ${
+              status === 'rejected' ? 'text-mute' : 'text-ink'
+            }`}
+          >
+            {action.headline}
+          </h2>
+          <div className="mt-0.5">
+            <SparkButton
+              label="this proposal"
+              ask={`The agent proposed: "${action.headline}". Worst case ${money(
+                action.maxCost,
+              )}, ${action.reversibility} to reverse, ${action.blastRadius} people affected. ${
+                action.conflict ? `It flags a conflict: ${action.conflict.detail} ` : ''
+              }Walk me through whether to approve it.`}
+            />
+          </div>
+        </div>
 
         <RiskRow
           maxCost={action.maxCost}

@@ -2,6 +2,7 @@
 
 import type { Observation } from '@/lib/types'
 import { Eyebrow, Tag } from './ui'
+import { SparkButton } from './AiChat'
 
 /**
  * The required do-nothing item. Not every good read is an action, and a brief
@@ -19,9 +20,17 @@ export function ObservationCard({ item, index }: { item: Observation; index: num
       </div>
 
       <div className="space-y-4 p-4 sm:p-5">
-        <h2 className="title text-[19px] leading-[1.25] text-ink sm:text-[21px]">
-          {item.headline}
-        </h2>
+        <div className="group/cell flex items-start justify-between gap-3">
+          <h2 className="title text-[19px] leading-[1.25] text-ink sm:text-[21px]">
+            {item.headline}
+          </h2>
+          <div className="mt-0.5">
+            <SparkButton
+              label="this observation"
+              ask={`The agent is holding off on this: "${item.headline}". Its reasoning: ${item.rationale} Do you agree, or is there something worth doing now?`}
+            />
+          </div>
+        </div>
 
         <p className="max-w-[68ch] text-[14px] leading-[1.6] text-mute">{item.rationale}</p>
 

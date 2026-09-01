@@ -3,6 +3,7 @@
 import { useConsole } from '@/lib/store'
 import { compactMoney, count, money, pct, signedPct } from '@/lib/format'
 import { useFlash, Eyebrow, Tag } from './ui'
+import { SparkButton } from './AiChat'
 
 const GOAL_TONE = {
   met: 'green',
@@ -24,6 +25,8 @@ function Cell({
   sub,
   tone = 'ink',
   tag,
+  ask,
+  askLabel,
   className = '',
 }: {
   label: React.ReactNode
@@ -31,14 +34,19 @@ function Cell({
   sub: React.ReactNode
   tone?: 'ink' | 'bad'
   tag?: React.ReactNode
+  ask: string
+  askLabel: string
   className?: string
 }) {
   const flash = useFlash(value)
   return (
-    <div className={`min-w-0 bg-card px-4 py-3.5 ${className}`}>
+    <div className={`group/cell min-w-0 bg-card px-4 py-3.5 ${className}`}>
       <div className="flex items-center justify-between gap-2">
         <div className="eyebrow min-w-0 truncate text-faint">{label}</div>
-        {tag}
+        <div className="flex shrink-0 items-center gap-1">
+          {tag}
+          <SparkButton ask={ask} label={askLabel} />
+        </div>
       </div>
       <div
         className={`num title mt-2 truncate text-[20px] leading-none sm:text-[24px] ${
@@ -71,7 +79,7 @@ export function StateStrip() {
 
   return (
     <div className="overflow-hidden rounded-xl border border-line bg-line">
-      <div className="grid grid-cols-2 gap-px sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-px @xl:grid-cols-3 @5xl:grid-cols-6">
         <Cell
           label={<>MRR → {compactMoney(goal.target)}/mo</>}
           value={money(state.revenue.mrr)}
@@ -83,6 +91,12 @@ export function StateStrip() {
                   1,
                 )}%/mo, doing ${signedPct(state.revenue.mrrChangePct30d)}`
           }
+          askLabel="MRR against the goal"
+          ask={`We are at ${money(state.revenue.mrr)}/mo against a ${money(
+            goal.target,
+          )}/mo goal by ${goal.byISO}, growing ${state.revenue.mrrChangePct30d}%/mo when we need ${pace.requiredMonthlyGrowthPct?.toFixed(
+            1,
+          )}%/mo. What is the fastest realistic path to close that gap?`}
           className="col-span-2"
         />
         <Cell
@@ -90,12 +104,24 @@ export function StateStrip() {
           value={pct(state.churn.trailing30dPct)}
           tone="bad"
           sub={`↑ ${churnDelta.toFixed(1)}pt from ${pct(state.churn.priorPct)}`}
+          askLabel="churn"
+          ask={`Churn went from ${pct(state.churn.priorPct)} to ${pct(
+            state.churn.trailing30dPct,
+          )} over 30 days. What is most likely causing it, and what would you check first?`}
         />
         <Cell
           label="CAC"
           value={camp ? money(camp.cac) : '—'}
           tone={camp && camp.cac > camp.cacPrior ? 'bad' : 'ink'}
           sub={camp ? `↑ from ${money(camp.cacPrior)}` : 'no campaigns'}
+          askLabel="CAC"
+          ask={
+            camp
+              ? `CAC on the Meta campaign went from ${money(camp.cacPrior)} to ${money(
+                  camp.cac,
+                )} with no creative change, on ${money(camp.dailyBudget)}/day. Is this worth fixing or should I cut the spend?`
+              : 'I have no active ad campaigns. Is paid acquisition worth starting given the goal?'
+          }
         />
         <Cell
           label="Balance"
@@ -105,12 +131,22 @@ export function StateStrip() {
               ? `${money(state.treasury.inYield)} in yield`
               : `${money(state.treasury.idle)} idle`
           }
+          askLabel="the balance"
+          ask={`I hold ${money(state.treasury.balance)}, of which ${money(
+            state.treasury.idle,
+          )} is idle, with a ${money(
+            state.obligations[0]?.amount ?? 0,
+          )} payout due in ${state.obligations[0]?.dueInDays ?? 0} days. What should I do with the idle cash?`}
         />
         <Cell
           label="Open issues"
           value={count(state.issues.length)}
           tone={spiking > 0 ? 'bad' : 'ink'}
           sub={spiking > 0 ? `${count(spiking)} spiking` : 'all cooling'}
+          askLabel="open issues"
+          ask={`${state.issues
+            .map((i) => `${i.title} (${i.events24h} events/24h, ${i.trend})`)
+            .join('; ')}. How much of my churn could these explain, and which do I fix first?`}
         />
       </div>
 

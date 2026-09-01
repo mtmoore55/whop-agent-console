@@ -4,11 +4,14 @@ import { useState } from 'react'
 import { useConsole } from '@/lib/store'
 import { shortDate } from '@/lib/format'
 import { WhopMark } from './WhopMark'
+import { useAiChat } from './AiChat'
+import { Icon } from './icons'
 import { Btn } from './ui'
 
 /** Mirrors the dashboard's 56px header: mark on the left, actions on the right. */
 export function TopBar() {
   const { state, brief, reset } = useConsole()
+  const { openWith } = useAiChat()
   const [confirming, setConfirming] = useState(false)
 
   return (
@@ -40,9 +43,19 @@ export function TopBar() {
             </Btn>
           </div>
         ) : (
-          <Btn variant="ghost" className="shrink-0" onClick={() => setConfirming(true)}>
-            Reset demo
-          </Btn>
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              onClick={() => openWith()}
+              title="Ask the assistant"
+              aria-label="Ask the assistant"
+              className="flex size-8 items-center justify-center rounded-lg text-mute transition-colors hover:bg-gray-3 hover:text-ink"
+            >
+              <Icon name="sparkle" />
+            </button>
+            <Btn variant="ghost" onClick={() => setConfirming(true)}>
+              Reset demo
+            </Btn>
+          </div>
         )}
       </div>
     </header>

@@ -160,6 +160,26 @@ Blocked cards name the specific rule that blocked them and offer a one-time over
 to 76px) + content. `MobileNav` replaces the rail with a bottom bar under 768px. Nav data
 lives in `components/nav-items.ts`; giving an item an `href` is all it takes to make it live.
 
+### 4.0a The assistant panel
+
+Whop puts a sparkle in its dashboard header that opens a 400px AI panel on the right. This
+reproduces it — same width, 20px/600 title, 12px-radius suggestion rows, 56px composer,
+and their `SparkleBoldFilled20` mark — and then puts the sparkle **per thing** rather than
+only in the header. Hovering a metric or a proposal reveals one; clicking it opens the
+panel with the question already asked, built from live state ("Churn went from 6.2% to
+8.4% over 30 days. What is most likely causing it?"). The header sparkle opens an empty
+chat with Whop's starters.
+
+`POST /api/chat` streams, because a chat that sits blank for thirty seconds is worse than
+no chat. Same grounding rules as the digest: state as JSON, no invented metrics, and an
+explicit instruction that it **advises but never executes** — anything with consequences
+goes through the brief and the gate. Without a key it says so plainly rather than
+pretending.
+
+The panel takes 400px from the content, and a media query cannot see that. The Brief's
+main column is a `@container` and the state strip reflows on container width, so opening
+the panel drops it from six columns to three instead of truncating every label.
+
 ### 4.1 The Brief (`/`)
 
 The morning digest, and the first thing anyone sees.
