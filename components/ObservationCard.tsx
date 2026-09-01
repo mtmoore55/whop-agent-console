@@ -10,7 +10,7 @@ import { SparkButton } from './AiChat'
  */
 export function ObservationCard({ item, index }: { item: Observation; index: number }) {
   return (
-    <article className="rounded-xl border border-dashed border-line bg-card/50">
+    <article className="group/cell rounded-xl border border-dashed border-line bg-card/50">
       <div className="flex items-center justify-between gap-3 border-b border-line-soft px-4 py-2.5 sm:px-5">
         <div className="flex min-w-0 items-center gap-2.5">
           <span className="num text-[11px] text-faint">{String(index + 1).padStart(2, '0')}</span>
@@ -20,7 +20,7 @@ export function ObservationCard({ item, index }: { item: Observation; index: num
       </div>
 
       <div className="space-y-4 p-4 sm:p-5">
-        <div className="group/cell flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-3">
           <h2 className="title text-[19px] leading-[1.25] text-ink sm:text-[21px]">
             {item.headline}
           </h2>

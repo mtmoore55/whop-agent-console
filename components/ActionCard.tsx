@@ -58,7 +58,7 @@ export function ActionCard({ action, index }: { action: ProposedAction; index: n
 
   return (
     <article
-      className={`relative overflow-hidden rounded-xl border bg-card transition-colors duration-200 ${
+      className={`group/cell relative overflow-hidden rounded-xl border bg-card transition-colors duration-200 ${
         status === 'executed'
           ? 'border-green-9/40'
           : status === 'rejected'
@@ -79,7 +79,7 @@ export function ActionCard({ action, index }: { action: ProposedAction; index: n
       </div>
 
       <div className="space-y-4 p-4 sm:p-5">
-        <div className="group/cell flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-3">
           <h2
             className={`title text-[19px] leading-[1.25] sm:text-[21px] ${
               status === 'rejected' ? 'text-mute' : 'text-ink'

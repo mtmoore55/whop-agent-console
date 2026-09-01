@@ -119,7 +119,9 @@ export function SparkButton({ ask, label }: { ask: string; label: string }) {
       }}
       title={`Ask about ${label}`}
       aria-label={`Ask about ${label}`}
-      className="shrink-0 rounded-md p-1 text-faint opacity-0 transition-all duration-100 hover:bg-gray-4 hover:text-brand-text focus-visible:opacity-100 group-hover/cell:opacity-100 max-sm:opacity-100"
+      // Always present, so the affordance is discoverable without hunting:
+      // recessed at rest, lifted while the row is hovered, brand on direct hover.
+      className="shrink-0 rounded-md p-1 text-gray-7 transition-colors duration-100 group-hover/cell:text-mute hover:!text-brand-text hover:bg-gray-4"
     >
       <Icon name="sparkle" className="size-4" />
     </button>
