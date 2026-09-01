@@ -64,7 +64,10 @@ export const SEED_STATE: BusinessState = {
   bounties: [],
   promos: [],
   broadcasts: [],
-  checkoutLinks: [],
+  // Created by the agent on Aug 28 — see lib/seed-log.ts
+  checkoutLinks: [
+    { id: 'link_aug_webinar', name: 'August webinar', productId: 'prod_community', discountPct: 0 },
+  ],
   treasury: {
     balance: 84120,
     settled: 65720,

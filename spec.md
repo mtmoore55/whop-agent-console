@@ -190,6 +190,19 @@ and offers a one-time override.
 
 ### 4.3 The Log (`/log`)
 
+**Seeded with ten days of prior history** (`lib/seed-log.ts`). An audit trail that opens
+empty proves nothing, and this is the screen that is supposed to make the other two
+trustworthy. The entries are consistent with `SEED_STATE` by construction: the Meta
+campaign sits at $240/day because of the raise on Aug 31, the $12,400 obligation exists
+because the owner overrode policy to schedule it on Aug 20, the August webinar checkout
+link is in state, and everything else was either rejected or undone so it left no trace to
+reconcile. Four of them are rejections, so the Brief shows agent memory on a first visit
+without anyone having to click.
+
+Seeded entries carry no `stateBefore`. They predate the session, so there is nothing
+honest to restore, and the Log labels them **Archived** rather than offering an Undo that
+would quietly do the wrong thing. Actions taken in-session still get a real Undo.
+
 Every action ever proposed with its full lifecycle: proposed → approved/modified/rejected
 → executed → outcome. Each executed action gets a receipt of what changed in the business
 state, and where `reversibility === 'instant'`, a working **Undo** that actually reverts.

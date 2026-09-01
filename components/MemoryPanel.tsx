@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { ACTION_LABELS } from '@/lib/policy'
 import { hardNos } from '@/lib/memory'
 import { useConsole } from '@/lib/store'
@@ -13,6 +14,10 @@ export function MemoryPanel({ compact = false }: { compact?: boolean }) {
   const { memory, forgetMemory, agent } = useConsole()
   const heldBack = agent.heldBack ?? []
   const standing = new Set(hardNos(memory))
+  // On the Brief this sits above the proposals, so it stays short. A rejection
+  // made just now is newest-first, so the "watch it learn" moment survives.
+  const shown = compact ? memory.slice(0, 3) : memory
+  const hidden = memory.length - shown.length
 
   if (memory.length === 0 && heldBack.length === 0) {
     if (compact) return null
@@ -41,15 +46,22 @@ export function MemoryPanel({ compact = false }: { compact?: boolean }) {
       </div>
 
       <ul className="divide-y divide-line-soft">
-        {memory.map((m) => (
-          <li key={m.id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-2.5">
-            <span className="text-[14px] text-ink">{ACTION_LABELS[m.type]}</span>
-            <span className="text-[13px] text-faint">rejected as</span>
-            <span className="text-[13px] font-medium text-red-11">{m.reason}</span>
-            {standing.has(m.type) && <Tag tone="red">standing no</Tag>}
+        {shown.map((m) => (
+          <li key={m.id} className="flex items-start gap-x-3 px-4 py-2.5">
+            <div className="min-w-0 flex-1">
+              {/* The proposal leads, so two rejections of the same action type
+                  stay distinguishable from each other. */}
+              <div className="truncate text-[14px] text-ink">{m.headline}</div>
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="text-[12px] text-faint">{ACTION_LABELS[m.type]}</span>
+                <span className="text-[12px] text-faint">· rejected as</span>
+                <span className="text-[12px] font-medium text-red-11">{m.reason}</span>
+                {standing.has(m.type) && <Tag tone="red">standing no</Tag>}
+              </div>
+            </div>
             <Btn
               variant="ghost"
-              className="ml-auto h-7 px-2 text-[13px]"
+              className="h-7 shrink-0 px-2 text-[13px]"
               onClick={() => forgetMemory(m.id)}
             >
               Forget
@@ -57,6 +69,14 @@ export function MemoryPanel({ compact = false }: { compact?: boolean }) {
           </li>
         ))}
       </ul>
+
+      {hidden > 0 && (
+        <div className="border-t border-line-soft px-4 py-2.5">
+          <Link href="/console" className="text-[13px] text-faint transition-colors hover:text-ink">
+            {hidden} more on the Console →
+          </Link>
+        </div>
+      )}
 
       {heldBack.length > 0 && (
         <div className="border-t border-line-soft bg-raise px-4 py-3">

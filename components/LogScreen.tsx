@@ -18,9 +18,12 @@ const LIFECYCLE_TONE = {
   rejected: 'red',
 } as const
 
-function Entry({ entry, canUndo }: { entry: LogEntry; canUndo: boolean }) {
+function Entry({ entry }: { entry: LogEntry }) {
   const { undo } = useConsole()
   const executed = entry.lifecycle.includes('executed')
+  // Entries seeded as history carry no snapshot, so there is nothing to
+  // restore. Say that rather than offering an Undo that cannot work.
+  const revertible = executed && !entry.undone && !!entry.stateBefore
 
   return (
     <article
@@ -66,10 +69,17 @@ function Entry({ entry, canUndo }: { entry: LogEntry; canUndo: boolean }) {
             </span>
             {entry.undone ? (
               <span className="text-[13px] text-faint">Reverted</span>
-            ) : entry.reversibility === 'instant' ? (
-              <Btn variant="soft" disabled={!canUndo} onClick={() => undo(entry.id)}>
+            ) : revertible ? (
+              <Btn variant="soft" onClick={() => undo(entry.id)}>
                 Undo
               </Btn>
+            ) : entry.reversibility === 'instant' ? (
+              <span
+                className="text-[13px] text-faint"
+                title="Ran before this session, so there is no snapshot to restore."
+              >
+                Archived
+              </span>
             ) : (
               <span
                 className="text-[13px] text-faint"
@@ -122,10 +132,10 @@ export function LogScreen() {
           </div>
         ) : (
           <div className="space-y-3">
-            {log.map((entry, i) => (
-              // Undo replays everything stacked on top, so any executed entry
-              // is safe to revert - not just the most recent one.
-              <Entry key={entry.id} entry={entry} canUndo={i >= 0} />
+            {/* Undo replays everything stacked on top, so any executed entry
+                with a snapshot is safe to revert - not just the most recent. */}
+            {log.map((entry) => (
+              <Entry key={entry.id} entry={entry} />
             ))}
           </div>
         )}

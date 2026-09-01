@@ -16,6 +16,7 @@ import { DEFAULT_POLICY, evaluate } from './policy'
 import { freshBrief, type Brief } from './proposals'
 import { memoryFromLog, type MemoryEntry } from './memory'
 import { freshState } from './seed'
+import { seedLog } from './seed-log'
 import type {
   ActionType,
   BusinessState,
@@ -30,7 +31,7 @@ import type {
 
 const STORAGE_KEY = 'whop-agent-console'
 /** Bump when the persisted shape changes; older payloads are dropped. */
-const STORAGE_VERSION = 2
+const STORAGE_VERSION = 3
 /** How long an execution animation runs before state actually commits. */
 export const EXECUTE_MS = 720
 
@@ -74,7 +75,7 @@ function initial(): ConsoleState {
     rejectionReasons: {},
     modifiedIds: [],
     overriddenIds: [],
-    log: [],
+    log: seedLog(),
     navCollapsed: false,
     forgottenMemoryIds: [],
     agent: { state: 'idle' },
@@ -182,7 +183,7 @@ function fromPersisted(p: Persisted): ConsoleState {
     rejectionReasons: p.rejectionReasons ?? {},
     modifiedIds,
     overriddenIds: p.overriddenIds ?? [],
-    log: p.log ?? [],
+    log: p.log ?? seedLog(),
     navCollapsed: p.navCollapsed ?? false,
     forgottenMemoryIds: p.forgottenMemoryIds ?? [],
     agent: p.agent ?? { state: 'idle' },
