@@ -1,26 +1,171 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/**
+ * Whop's design tokens, read off the live dashboard (Radix Themes with a
+ * custom neutral gray scale). Same values, same names, so this console reads
+ * as part of the product rather than next to it.
+ */
+@theme {
+  /* Neutral scale — gray-1 is the page ground, gray-12 is body text. */
+  --color-gray-1: #111111;
+  --color-gray-2: #191919;
+  --color-gray-3: #222222;
+  --color-gray-4: #2a2a2a;
+  --color-gray-5: #313131;
+  --color-gray-6: #3a3a3a;
+  --color-gray-7: #484848;
+  --color-gray-8: #606060;
+  --color-gray-9: #6e6e6e;
+  --color-gray-10: #7b7b7b;
+  --color-gray-11: #b4b4b4;
+  --color-gray-12: #eeeeee;
+
+  /* Whop brand. Orange is the mark and the agent; it is never a button. */
+  --color-brand: #fa4616;
+  --color-brand-light: #ff6a24;
+  --color-brand-text: #ff9275;
+  --color-brand-surface: #2d1713;
+
+  /* Primary action, exactly as the dashboard renders it. */
+  --color-blue-9: #1754d8;
+  --color-blue-10: #406cc8;
+  --color-blue-11: #88b5ff;
+  --color-blue-surface: #0e1d3d;
+
+  --color-red-9: #fd1d1d;
+  --color-red-11: #ff9081;
+  --color-red-8: #c0372d;
+  --color-red-surface: #311511;
+
+  --color-green-9: #30a46c;
+  --color-green-11: #3dd68c;
+  --color-green-surface: #15251d;
+
+  --color-amber-9: #ffc53d;
+  --color-amber-11: #ffca16;
+  --color-amber-surface: #271f13;
+
+  /* Semantic aliases used across the console. */
+  --color-ground: var(--color-gray-1);
+  --color-card: var(--color-gray-2);
+  --color-raise: var(--color-gray-3);
+  --color-line: var(--color-gray-4);
+  --color-line-soft: var(--color-gray-3);
+  --color-ink: var(--color-gray-12);
+  --color-mute: var(--color-gray-11);
+  --color-faint: var(--color-gray-10);
+
+  --font-sans: var(--font-inter), "Inter Fallback", -apple-system, system-ui, sans-serif;
+
+  /* Radix radius steps as Whop configures them. */
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--color-gray-1);
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-gray-1);
+  color: var(--color-gray-12);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  letter-spacing: -0.005625em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Whop sets money and counts in Inter with tabular figures, not a mono face. */
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Small section labels: 12px medium in gray-10, no shouting. */
+.eyebrow {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
+.title {
+  font-weight: 600;
+  letter-spacing: -0.037em;
+}
+
+::selection {
+  background: var(--color-blue-9);
+  color: #fff;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+select {
+  background-image: none;
+}
+
+/* --- Motion: only for transitions that represent something real --- */
+
+@keyframes sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+.executing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--color-brand) 10%, transparent) 45%,
+    color-mix(in srgb, var(--color-brand) 18%, transparent) 50%,
+    transparent 100%
+  );
+  animation: sweep 720ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes flash {
+  0% { color: var(--color-brand-light); }
+  100% { color: inherit; }
+}
+
+.flash {
+  animation: flash 900ms ease-out;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.rise {
+  animation: rise 240ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .executing::after,
+  .flash,
+  .rise {
+    animation: none;
+  }
 }
