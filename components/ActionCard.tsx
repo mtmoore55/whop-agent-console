@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { ACTION_LABELS } from '@/lib/policy'
+import { shareOfGap } from '@/lib/goal'
+import { money } from '@/lib/format'
 import { useConsole } from '@/lib/store'
 import type { ProposedAction } from '@/lib/types'
 import { ConflictNote } from './ConflictNote'
@@ -13,8 +15,19 @@ import { Btn, Eyebrow, Tag } from './ui'
 const REJECT_REASONS = ['risky', 'timing', 'too-broad', 'too-costly', 'not-now']
 
 export function ActionCard({ action, index }: { action: ProposedAction; index: number }) {
-  const { policy, statusOf, verdictOf, approve, reject, override, overriddenIds, modifiedIds, log } =
-    useConsole()
+  const {
+    policy,
+    goal,
+    pace,
+    statusOf,
+    verdictOf,
+    approve,
+    reject,
+    override,
+    overriddenIds,
+    modifiedIds,
+    log,
+  } = useConsole()
   const [mode, setMode] = useState<'idle' | 'modify' | 'reject'>('idle')
   const [reason, setReason] = useState('')
 
@@ -106,18 +119,45 @@ export function ActionCard({ action, index }: { action: ProposedAction; index: n
                 </ul>
               </div>
 
-              <div className="sm:min-w-[168px] sm:border-l sm:border-line-soft sm:pl-5">
-                <Eyebrow className="mb-2">If it works</Eyebrow>
-                <div className="text-[13px] leading-snug text-faint">
-                  {action.expectedImpact.metric}
+              <div className="space-y-4 sm:min-w-[190px] sm:border-l sm:border-line-soft sm:pl-5">
+                <div>
+                  <Eyebrow className="mb-2">If it works</Eyebrow>
+                  <div className="text-[13px] leading-snug text-faint">
+                    {action.expectedImpact.metric}
+                  </div>
+                  <div className="num mt-1.5 text-[16px] font-semibold tracking-[-0.02em] text-ink">
+                    {action.expectedImpact.direction === 'up' ? '↑' : '↓'}{' '}
+                    {action.expectedImpact.estimate}
+                  </div>
+                  <div className="eyebrow mt-1.5 text-faint">
+                    {action.expectedImpact.confidence} confidence
+                  </div>
                 </div>
-                <div className="num mt-1.5 text-[16px] font-semibold tracking-[-0.02em] text-ink">
-                  {action.expectedImpact.direction === 'up' ? '↑' : '↓'}{' '}
-                  {action.expectedImpact.estimate}
-                </div>
-                <div className="eyebrow mt-1.5 text-faint">
-                  {action.expectedImpact.confidence} confidence
-                </div>
+
+                {action.goalContribution && (
+                  <div className="border-t border-line-soft pt-3.5">
+                    <Eyebrow className="mb-2">Toward {goal.label}</Eyebrow>
+                    <div
+                      className={`num text-[16px] font-semibold tracking-[-0.02em] ${
+                        action.goalContribution.monthlyDelta > 0 ? 'text-ink' : 'text-mute'
+                      }`}
+                      title={action.goalContribution.basis}
+                    >
+                      {action.goalContribution.monthlyDelta > 0
+                        ? `+${money(action.goalContribution.monthlyDelta)}/mo`
+                        : 'holds the line'}
+                    </div>
+                    {action.goalContribution.monthlyDelta > 0 && pace.gap > 0 && (
+                      <div className="num mt-1.5 text-[12px] text-faint">
+                        {shareOfGap(action.goalContribution.monthlyDelta, pace).toFixed(1)}% of the
+                        gap
+                      </div>
+                    )}
+                    <div className="mt-1.5 text-[11.5px] leading-snug text-faint">
+                      agent&apos;s estimate
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </>

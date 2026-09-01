@@ -15,12 +15,14 @@ import { execute } from './execute'
 import { DEFAULT_POLICY, evaluate } from './policy'
 import { freshBrief, type Brief } from './proposals'
 import { memoryFromLog, type MemoryEntry } from './memory'
-import { freshState } from './seed'
+import { goalPace, type GoalPace } from './goal'
+import { freshGoal, freshState } from './seed'
 import { seedLog } from './seed-log'
 import type {
   ActionType,
   BusinessState,
   LogEntry,
+  Goal,
   Policy,
   PolicyStance,
   Proposal,
@@ -38,6 +40,7 @@ export const EXECUTE_MS = 720
 interface ConsoleState {
   state: BusinessState
   policy: Policy
+  goal: Goal
   brief: Brief
   statuses: Record<string, ProposalStatus>
   rejectionReasons: Record<string, string>
@@ -70,6 +73,7 @@ function initial(): ConsoleState {
   return {
     state: freshState(),
     policy: DEFAULT_POLICY,
+    goal: freshGoal(),
     brief: freshBrief(),
     statuses: {},
     rejectionReasons: {},
@@ -97,6 +101,7 @@ interface Persisted {
   log: LogEntry[]
   params: Record<string, Record<string, unknown>>
   policy: Policy
+  goal: Goal
   navCollapsed: boolean
   forgottenMemoryIds: string[]
   /** A live/cached brief is kept whole; the seeded one is rebuilt from code. */
@@ -119,6 +124,7 @@ function toPersisted(s: ConsoleState): Persisted {
     log: s.log,
     params,
     policy: s.policy,
+    goal: s.goal,
     navCollapsed: s.navCollapsed,
     forgottenMemoryIds: s.forgottenMemoryIds,
     brief: s.brief.source === 'seed' ? null : s.brief,
@@ -157,6 +163,7 @@ function fromPersisted(p: Persisted): ConsoleState {
   const base = initial()
   // An agent-generated brief is data, not code, so it round-trips verbatim.
   const policy = p.policy ?? base.policy
+  const goal = p.goal ?? base.goal
   const brief = p.brief ?? base.brief
   let proposals = brief.proposals
   const modifiedIds: string[] = []
@@ -178,6 +185,7 @@ function fromPersisted(p: Persisted): ConsoleState {
     ...base,
     state: p.state ?? base.state,
     policy,
+    goal,
     brief: { ...brief, proposals },
     statuses,
     rejectionReasons: p.rejectionReasons ?? {},
@@ -205,6 +213,7 @@ type Msg =
   | { t: 'agentFailed' }
   | { t: 'forgetMemory'; id: string }
   | { t: 'setPolicy'; patch: Partial<Policy> }
+  | { t: 'setGoal'; patch: Partial<Goal> }
   | { t: 'setStance'; actionType: ActionType; stance: PolicyStance }
   | { t: 'undo'; id: string }
   | { t: 'reset' }
@@ -346,6 +355,9 @@ function reducer(s: ConsoleState, m: Msg): ConsoleState {
     case 'setPolicy':
       return { ...s, policy: { ...s.policy, ...m.patch } }
 
+    case 'setGoal':
+      return { ...s, goal: { ...s.goal, ...m.patch } }
+
     case 'setStance':
       return {
         ...s,
@@ -401,6 +413,8 @@ interface ConsoleApi extends ConsoleState {
   override: (id: string) => void
   toggleNav: () => void
   setPolicy: (patch: Partial<Policy>) => void
+  setGoal: (patch: Partial<Goal>) => void
+  pace: GoalPace
   setStance: (actionType: ActionType, stance: PolicyStance) => void
   resetPolicy: () => void
   undo: (id: string) => void
@@ -455,6 +469,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
   const runAgent = useCallback(async (payload: {
     state: BusinessState
     policy: Policy
+    goal: Goal
     memory: MemoryEntry[]
   }) => {
     dispatch({ t: 'agentRunning' })
@@ -508,6 +523,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
     return {
       ...s,
       memory,
+      pace: goalPace(s.state, s.goal),
       approve: (id) => approveMany([id]),
       approveMany,
       reject: (id, reason) => dispatch({ t: 'reject', id, reason }),
@@ -515,10 +531,11 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       override: (id) => dispatch({ t: 'override', id }),
       toggleNav: () => dispatch({ t: 'toggleNav' }),
       runAgent: () => {
-        void runAgent({ state: s.state, policy: s.policy, memory })
+        void runAgent({ state: s.state, policy: s.policy, goal: s.goal, memory })
       },
       forgetMemory: (id) => dispatch({ t: 'forgetMemory', id }),
       setPolicy: (patch) => dispatch({ t: 'setPolicy', patch }),
+      setGoal: (patch) => dispatch({ t: 'setGoal', patch }),
       setStance: (actionType, stance) => dispatch({ t: 'setStance', actionType, stance }),
       resetPolicy: () => dispatch({ t: 'setPolicy', patch: DEFAULT_POLICY }),
       undo: (id) => dispatch({ t: 'undo', id }),

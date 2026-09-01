@@ -1,11 +1,14 @@
 {
   "_comment": "Checked-in agent response, served when the live call fails or no API key is configured. Model-shaped on purpose: it runs through the same validator as a live response, so the cached path can never drift from what live produces.",
-  "lede": "Churn jumped to 8.4% from 6.2% while your checkout started timing out on mobile — the two are probably the same story, so treat the revenue number as unreliable until the webhook is fixed.",
+  "lede": "Churn jumped to 8.4% from 6.2% while your checkout started timing out on mobile \u2014 the two are probably the same story, so treat the revenue number as unreliable until the webhook is fixed.",
   "proposals": [
     {
       "kind": "action",
       "type": "whop.treasury.move",
-      "params": { "amount": 61000, "destination": "yield" },
+      "params": {
+        "amount": 61000,
+        "destination": "yield"
+      },
       "headline": "Sweep $61,000 of idle cash into Treasury yield at 4.15%",
       "rationale": "Sixty-one thousand dollars of settled cash has sat outside yield all quarter earning exactly nothing. At 4.15% that is about $211 a month you are handing back to your processor. It is one transfer and the position accrues daily.",
       "evidence": [
@@ -23,6 +26,10 @@
       "conflict": {
         "label": "Payout due in 6 days",
         "detail": "Money in yield takes longer to come back out than you have before the next payout lands, and most of what stays behind is still inside a clearing window. Check what is actually settled the day the payout runs."
+      },
+      "goalContribution": {
+        "monthlyDelta": 211,
+        "basis": "Interest at 4.15% on $61,000 is about $211/mo. It protects the goal rather than growing it \u2014 yield is not revenue."
       }
     },
     {
@@ -53,12 +60,19 @@
       "conflict": {
         "label": "The code will leak",
         "detail": "Promo codes are not member-locked. Every active member paying full price can find and use this one, so the discount, the run length and the redemption cap are the only things containing it."
+      },
+      "goalContribution": {
+        "monthlyDelta": 1120,
+        "basis": "If 35 of the 312 lapsed return at a discounted $19.20, that is about $670/mo now and ~$1,120/mo once the discount lapses."
       }
     },
     {
       "kind": "action",
       "type": "whop.affiliate.enable",
-      "params": { "ratePct": 25, "cookieWindowDays": 30 },
+      "params": {
+        "ratePct": 25,
+        "cookieWindowDays": 30
+      },
       "headline": "Turn on affiliates at 25% recurring with a 30-day cookie",
       "rationale": "Affiliates have never been enabled while paid CAC has drifted from $44 to $61. A recurring 25% pays only on revenue that actually arrives, which moves acquisition from fixed cost to variable cost with nothing spent up front.",
       "evidence": [
@@ -72,7 +86,11 @@
         "estimate": "-$8 to -$14",
         "confidence": "medium"
       },
-      "reversibility": "instant"
+      "reversibility": "instant",
+      "goalContribution": {
+        "monthlyDelta": 1480,
+        "basis": "Roughly 46 referred members a quarter at $32, net of a 25% commission, is about $1,480/mo added run-rate."
+      }
     },
     {
       "kind": "action",
@@ -96,12 +114,19 @@
         "estimate": "+10 to +30",
         "confidence": "low"
       },
-      "reversibility": "costly"
+      "reversibility": "costly",
+      "goalContribution": {
+        "monthlyDelta": 640,
+        "basis": "30 verified referrals at $32/mo, minus the one-off $750, is about $640/mo of new recurring revenue."
+      }
     },
     {
       "kind": "action",
       "type": "whop.ads.campaign.adjust_budget",
-      "params": { "campaignId": "camp_meta_1", "newDailyBudget": 140 },
+      "params": {
+        "campaignId": "camp_meta_1",
+        "newDailyBudget": 140
+      },
       "headline": "Cut the Meta campaign from $240 to $140/day while CAC is drifting",
       "rationale": "CAC on this campaign moved from $44 to $61 over 30 days with no creative change, so holding the budget flat buys the same member for 39% more. Cutting to $140 keeps the campaign in market and learning without funding the worse cohort.",
       "evidence": [
@@ -115,11 +140,15 @@
         "estimate": "-$100/day",
         "confidence": "high"
       },
-      "reversibility": "instant"
+      "reversibility": "instant",
+      "goalContribution": {
+        "monthlyDelta": 0,
+        "basis": "Cutting spend does not add MRR. It stops $100/day buying members at a CAC that no longer pays back, which protects the runway the goal needs."
+      }
     },
     {
       "kind": "observation",
-      "headline": "Do not respond to the mobile conversion dip yet — it looks like a bug",
+      "headline": "Do not respond to the mobile conversion dip yet \u2014 it looks like a bug",
       "rationale": "Checkout webhook timeouts are spiking at 41 events in 24 hours and completed mobile checkouts fell in the same window. Any pricing or promo response right now would be treating an engineering failure as a demand problem, and it would poison the churn read for the next 30 days.",
       "evidence": [
         "Checkout webhook timeouts: 41 events/24h, spiking",

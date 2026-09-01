@@ -4,9 +4,9 @@ import { parseBrief } from '@/lib/agent/parse'
 import { buildSystemPrompt, buildUserPrompt } from '@/lib/agent/prompt'
 import cachedBrief from '@/lib/agent/cached-brief.json'
 import { DEFAULT_POLICY } from '@/lib/policy'
-import { freshState } from '@/lib/seed'
 import type { MemoryEntry } from '@/lib/memory'
-import type { ActionType, BusinessState, Policy } from '@/lib/types'
+import { freshGoal, freshState } from '@/lib/seed'
+import type { ActionType, BusinessState, Goal, Policy } from '@/lib/types'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
@@ -30,6 +30,7 @@ type Mode = 'live' | 'cached'
 interface DigestRequest {
   state?: BusinessState
   policy?: Policy
+  goal?: Goal
   memory?: MemoryEntry[]
 }
 
@@ -111,6 +112,7 @@ export async function POST(req: Request) {
 
   const state = body.state ?? freshState()
   const policy = body.policy ?? DEFAULT_POLICY
+  const goal = body.goal ?? freshGoal()
   const memory = Array.isArray(body.memory) ? body.memory.slice(0, 40) : []
 
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -134,7 +136,7 @@ export async function POST(req: Request) {
         // Low keeps a morning digest inside a human-scale wait. The cached
         // brief is a better outcome than a slow one.
         output_config: { effort: 'low' },
-        system: buildSystemPrompt(memory),
+        system: buildSystemPrompt(memory, goal, state),
         messages: [{ role: 'user', content: buildUserPrompt(state) }],
       },
       { timeout: TIMEOUT_MS },

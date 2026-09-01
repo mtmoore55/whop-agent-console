@@ -107,6 +107,7 @@ export function parseBrief(
       expectedImpact: m.expectedImpact,
       reversibility: m.reversibility,
       conflict: m.conflict,
+      goalContribution: m.goalContribution,
       maxCost: d.maxCost,
       blastRadius: d.blastRadius,
       requiresApproval: verdict.requiresApproval,

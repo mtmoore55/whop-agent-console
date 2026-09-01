@@ -28,6 +28,7 @@ function act<K extends ActionType>(cfg: {
   evidence: string[]
   expectedImpact: ExpectedImpact
   reversibility: Reversibility
+  goalContribution?: { monthlyDelta: number; basis: string }
   conflict?: { label: string; detail: string }
 }): ProposedAction {
   const { maxCost, blastRadius } = derive(cfg.type, cfg.params, SEED_STATE)
@@ -49,6 +50,7 @@ function act<K extends ActionType>(cfg: {
     blastRadius,
     reversibility: cfg.reversibility,
     requiresApproval: verdict.requiresApproval,
+    goalContribution: cfg.goalContribution,
     conflict: cfg.conflict,
   } as ProposedAction
 }
@@ -67,7 +69,12 @@ const treasury = act({
     'Treasury yield paying 4.15% APR',
   ],
   expectedImpact: { metric: 'Interest income', direction: 'up', estimate: '+$211/mo', confidence: 'high' },
-  reversibility: 'costly',
+    reversibility: 'costly',
+  goalContribution: {
+    monthlyDelta: 211,
+    basis:
+      'Interest at 4.15% on $61,000 is about $211/mo. It protects the goal rather than advancing it — yield is not revenue.',
+  },
   conflict: {
     label: 'Payout due in 6 days',
     detail:
@@ -101,7 +108,12 @@ const promo = act({
     estimate: '+35 to +60',
     confidence: 'medium',
   },
-  reversibility: 'costly',
+    reversibility: 'costly',
+  goalContribution: {
+    monthlyDelta: 1120,
+    basis:
+      'If 35 of the 312 lapsed return at a discounted $19.20, that is about $670/mo now and roughly $1,120/mo once the discount lapses.',
+  },
   conflict: {
     label: 'The code will leak',
     detail:
@@ -123,6 +135,11 @@ const affiliate = act({
   ],
   expectedImpact: { metric: 'Blended CAC', direction: 'down', estimate: '-$8 to -$14', confidence: 'medium' },
   reversibility: 'instant',
+  goalContribution: {
+    monthlyDelta: 1480,
+    basis:
+      'Roughly 46 referred members a quarter at $32, net of a 25% commission, is about $1,480/mo of added run-rate.',
+  },
 })
 
 const bounty = act({
@@ -144,6 +161,10 @@ const bounty = act({
   ],
   expectedImpact: { metric: 'New paid members', direction: 'up', estimate: '+10 to +30', confidence: 'low' },
   reversibility: 'costly',
+  goalContribution: {
+    monthlyDelta: 640,
+    basis: '30 verified referrals at $32/mo, minus the one-off $750, is about $640/mo of new recurring revenue.',
+  },
 })
 
 const ads = act({
@@ -160,6 +181,11 @@ const ads = act({
   ],
   expectedImpact: { metric: 'Daily ad spend', direction: 'down', estimate: '-$100/day', confidence: 'high' },
   reversibility: 'instant',
+  goalContribution: {
+    monthlyDelta: 0,
+    basis:
+      'Cutting spend adds no MRR. It stops $100/day buying members at a CAC that no longer pays back, which protects the runway the goal needs.',
+  },
 })
 
 const watch: Observation = {

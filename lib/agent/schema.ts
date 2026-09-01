@@ -136,6 +136,11 @@ export const modelActionSchema = z
     conflict: z
       .object({ label: z.string().min(1).max(80), detail: z.string().min(1).max(500) })
       .optional(),
+    // Optional on purpose. Dropping an otherwise-good proposal because the
+    // model omitted an estimate would be the over-strict failure again.
+    goalContribution: z
+      .object({ monthlyDelta: z.number(), basis: z.string().min(1).max(240) })
+      .optional(),
   })
   .and(paramsByType)
 

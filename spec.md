@@ -177,6 +177,32 @@ Each card has **Approve / Modify / Reject**. Reject asks for a one-word reason (
 feeds M4's memory). Modify opens an inline editor of the action's actual parameters, not
 a text box. A batch control approves everything auto-eligible, showing combined cost first.
 
+### 4.1a The goal
+
+`Goal { metric, target, byISO }` — set on the Console, and the thing the agent is
+actually working toward. It changes three things:
+
+- **Pace is derived, never asserted** (`lib/goal.ts`). Growth compounds, so months-to-goal
+  is `ln(target/current) / ln(1+g)`, not a linear division — over a year the difference is
+  large enough to flatter a pace that is actually behind. The strip on the Brief renders
+  this; the agent writes the lede. They sit next to each other because the agent can be
+  wrong about the second and cannot be wrong about the first.
+- **The agent is told the gap, the observed rate, the required rate and the verdict**, and
+  is instructed to lead with the gap when the gap is the story — and to say plainly when
+  the biggest lever is something none of its actions can touch.
+- **Every action carries `goalContribution`**: monthly delta plus a one-line basis, shown
+  on the card as a share of the remaining gap and labelled *agent's estimate*. Unlike cost
+  and blast radius this cannot be derived from the params, so it is the model's guess and
+  is marked as one. It is optional in the schema on purpose — dropping a good proposal for
+  a missing estimate would repeat the over-strict mistake from M2.
+
+Seeded at $100k/mo by Jun 2027 against $57,340 growing 4.1%/mo: 13.8 months of runway
+against 9.9 remaining, needing 5.8%/mo. A goal the current pace already satisfies teaches
+the agent nothing, so the seed is deliberately behind.
+
+Proposals are **not** reordered by contribution. The ordering is decision weight, and
+re-sorting would bury the treasury conflict that the demo turns on.
+
 ### 4.2 The Console (`/console`)
 
 - Per-action-type policy: auto-approve / ask me / never

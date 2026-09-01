@@ -4,6 +4,8 @@ import { ACTION_LABELS, DEFAULT_POLICY, countsAsSpend, policySentence } from '@/
 import { count, money } from '@/lib/format'
 import { useConsole } from '@/lib/store'
 import { ACTION_TYPES, type ActionType, type PolicyStance } from '@/lib/types'
+import { arrivalISO } from '@/lib/goal'
+import { monthYear } from '@/lib/format'
 import { AppShell } from './AppShell'
 import { MemoryPanel } from './MemoryPanel'
 import { PageHeader } from './PageHeader'
@@ -121,6 +123,95 @@ function Limit({
   )
 }
 
+/** The number the agent is working toward. Everything else is guardrails. */
+function GoalCard() {
+  const { goal, setGoal, pace, state } = useConsole()
+  const arrives = arrivalISO(state, pace)
+
+  return (
+    <div className="mb-4 overflow-hidden rounded-xl border border-line bg-card">
+      <div className="border-b border-line-soft px-4 py-2.5 sm:px-5">
+        <Eyebrow>The goal</Eyebrow>
+      </div>
+
+      <div className="grid grid-cols-1 gap-px bg-line sm:grid-cols-3">
+        <div className="bg-card px-4 py-3.5">
+          <Eyebrow className="mb-2">Metric</Eyebrow>
+          <div className="title text-[22px] leading-none text-ink">{goal.label}</div>
+          <p className="mt-2 text-[12px] leading-snug text-faint">
+            Monthly recurring revenue, read from the business state.
+          </p>
+        </div>
+
+        <div className="bg-card px-4 py-3.5">
+          <Eyebrow className="mb-2">Target</Eyebrow>
+          <div className="flex items-center gap-1.5">
+            <span className="num text-[22px] text-faint">$</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={100_000_000}
+              step={1000}
+              value={goal.target}
+              onChange={(e) => {
+                const n = Number(e.target.value)
+                if (Number.isFinite(n)) setGoal({ target: Math.max(0, n) })
+              }}
+              className="num title w-full min-w-0 rounded-lg border border-transparent bg-transparent px-1 py-0.5 text-[22px] text-ink outline-none transition-colors hover:border-line focus:border-blue-9"
+            />
+            <span className="num shrink-0 text-[14px] text-faint">/mo</span>
+          </div>
+          <p className="mt-2 text-[12px] leading-snug text-faint">
+            The gap the agent is asked to close.
+          </p>
+        </div>
+
+        <div className="bg-card px-4 py-3.5">
+          <Eyebrow className="mb-2">By</Eyebrow>
+          <input
+            type="date"
+            value={goal.byISO.slice(0, 10)}
+            onChange={(e) => e.target.value && setGoal({ byISO: e.target.value })}
+            className="num title w-full min-w-0 rounded-lg border border-transparent bg-transparent px-1 py-0.5 text-[20px] text-ink outline-none transition-colors hover:border-line focus:border-blue-9 [color-scheme:dark]"
+          />
+          <p className="mt-2 text-[12px] leading-snug text-faint">
+            Sets the required rate, and therefore what counts as behind.
+          </p>
+        </div>
+      </div>
+
+      <div className="border-t border-line-soft bg-raise px-4 py-3 sm:px-5">
+        <p className="max-w-[80ch] text-[14px] leading-[1.55] text-mute">
+          {pace.status === 'met' ? (
+            <>Already at {money(pace.current)}/mo. The target is behind you — raise it.</>
+          ) : pace.status === 'stalled' ? (
+            <>
+              {money(pace.current)}/mo and not growing, so this target is never reached. The agent
+              is told that plainly.
+            </>
+          ) : (
+            <>
+              {money(pace.current)}/mo today, {money(pace.gap)}/mo short. Growing{' '}
+              {pace.monthlyGrowthPct.toFixed(1)}%/mo, which arrives{' '}
+              {arrives ? monthYear(arrives) : '—'} against a deadline{' '}
+              {pace.monthsRemaining.toFixed(0)} months out. Hitting it needs{' '}
+              <span className={pace.status === 'behind' ? 'text-amber-11' : 'text-ink'}>
+                {pace.requiredMonthlyGrowthPct?.toFixed(1)}%/mo
+              </span>
+              .
+            </>
+          )}
+        </p>
+        <p className="mt-2 max-w-[80ch] text-[13px] leading-[1.55] text-faint">
+          The agent gets this gap and this pace in its system prompt, and every action it
+          proposes has to say what it contributes toward closing it.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export function ConsoleScreen() {
   const { policy, setPolicy, resetPolicy, brief, verdictOf, statusOf } = useConsole()
 
@@ -143,13 +234,15 @@ export function ConsoleScreen() {
       <div className="mx-auto max-w-[1120px] px-4 pb-24 pt-7 sm:px-6 sm:pt-10">
         <PageHeader
           title="Console"
-          sub="Set the rules once so the brief gets faster over time. Everything here is enforced before a proposal ever reaches you."
+          sub="Set the goal once and the rules once. The goal is what the agent works toward; the rules are what it cannot do without you."
           right={
             <Btn variant="ghost" disabled={isDefault} onClick={resetPolicy}>
               Reset to defaults
             </Btn>
           }
         />
+
+        <GoalCard />
 
         <div className="mb-4 rounded-xl border border-line bg-card px-4 py-3.5 sm:px-5">
           <Eyebrow className="mb-1.5">In plain language</Eyebrow>

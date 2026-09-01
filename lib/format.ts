@@ -70,6 +70,18 @@ export function shortDate(iso: string): string {
   })
 }
 
+/**
+ * Goal horizons are months or years out, so "Oct 27" reads as a day of the
+ * month. Month plus year is the only unambiguous short form here.
+ */
+export function monthYear(iso: string): string {
+  return new Date(`${iso.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-US', {
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+}
+
 export function clockTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-US', {
     hour: 'numeric',

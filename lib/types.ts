@@ -243,6 +243,12 @@ export type ProposedAction = {
      * touches. Never used to auto-block — the human catches it.
      */
     conflict?: { label: string; detail: string }
+    /**
+     * The agent's estimate of what this moves the goal by, per month. Unlike
+     * cost and blast radius this cannot be derived from the params, so it is
+     * the model's guess and is labelled as one.
+     */
+    goalContribution?: { monthlyDelta: number; basis: string }
   }
 }[ActionType]
 
@@ -254,6 +260,24 @@ export interface Observation extends ProposalBase {
 }
 
 export type Proposal = ProposedAction | Observation
+
+/* ------------------------------------------------------------------ */
+/* Goal                                                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The number the business is actually trying to reach. It is not decoration:
+ * the agent is told the gap and the pace, and every action it proposes has to
+ * say what it contributes toward closing that gap.
+ */
+export interface Goal {
+  metric: 'mrr'
+  label: string
+  /** Target value of the metric, in dollars per month. */
+  target: number
+  /** The date the target is meant to be hit. */
+  byISO: string
+}
 
 /* ------------------------------------------------------------------ */
 /* Policy                                                              */

@@ -1,4 +1,4 @@
-import type { BusinessState } from './types'
+import type { BusinessState, Goal } from './types'
 
 export const TODAY = '2026-09-01'
 
@@ -112,6 +112,22 @@ export const SEED_STATE: BusinessState = {
     },
   ],
   agentSpendToday: 0,
+}
+
+/**
+ * $100k/mo by mid-2027. At the observed 4.1%/mo the business arrives late,
+ * which is the point: a goal that the current pace already satisfies tells the
+ * agent nothing.
+ */
+export const SEED_GOAL: Goal = {
+  metric: 'mrr',
+  label: 'MRR',
+  target: 100000,
+  byISO: '2027-06-30',
+}
+
+export function freshGoal(): Goal {
+  return { ...SEED_GOAL }
 }
 
 export function freshState(): BusinessState {

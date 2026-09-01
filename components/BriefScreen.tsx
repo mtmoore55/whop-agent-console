@@ -6,6 +6,7 @@ import { ObservationCard } from './ObservationCard'
 import { StateStrip } from './StateStrip'
 import { AppShell } from './AppShell'
 import { AgentBar } from './AgentBar'
+import { GoalStrip } from './GoalStrip'
 import { MemoryPanel } from './MemoryPanel'
 import { Eyebrow } from './ui'
 import { count } from '@/lib/format'
@@ -32,6 +33,10 @@ export function BriefScreen() {
               {brief.lede}
             </h1>
           </div>
+        </section>
+
+        <section className="mb-4">
+          <GoalStrip />
         </section>
 
         <section className="mb-4">

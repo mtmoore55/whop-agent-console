@@ -1,4 +1,5 @@
-import type { BusinessState } from '../types'
+import type { BusinessState, Goal } from '../types'
+import { goalPace } from '../goal'
 import { ACTION_LABELS } from '../policy'
 import { PARAMS_DOC } from './schema'
 import type { MemoryEntry } from '../memory'
@@ -7,7 +8,10 @@ import type { MemoryEntry } from '../memory'
  * The system prompt. The agent is the operator of this business, not a
  * chatbot describing it. It gets the state as JSON and returns JSON.
  */
-export function buildSystemPrompt(memory: MemoryEntry[]): string {
+const fmt = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`
+
+export function buildSystemPrompt(memory: MemoryEntry[], goal?: Goal, state?: BusinessState): string {
+  const pace = goal && state ? goalPace(state, goal) : null
   const actionList = Object.entries(ACTION_LABELS)
     .map(([type, label]) => `  "${type}"  — ${label}`)
     .join('\n')
@@ -39,6 +43,7 @@ Action:
   "evidence": string[],          // 1-5 items, each a metric that exists in the state
   "expectedImpact": { "metric": string, "direction": "up"|"down", "estimate": string (short, e.g. "+$211/mo" or "+35 to +60"), "confidence": "low"|"medium"|"high" },
   "reversibility": "instant" | "costly" | "irreversible",
+  "goalContribution": { "monthlyDelta": number, "basis": string },   // see The goal
   "conflict": { "label": string, "detail": string }   // optional
 }
 
@@ -73,15 +78,36 @@ Ids (productId, campaignId) must be copied verbatim from the state. An action wh
 5. Do not estimate "maxCost" or "blast radius" — those are derived from your params.
 6. "reversibility" is about the real world: "instant" if you could undo it today with no cost, "costly" if money or a promise has already moved, "irreversible" if it cannot be taken back.
 7. Use "conflict" when something elsewhere in the state makes an otherwise-good action risky — an obligation the money is needed for, an audience wider than intended, an error that makes a metric untrustworthy. Name the conflict; do not soften the proposal to avoid it.
-8. Prefer a small number of specific, executable moves over a wide survey. The owner can only act on what is concrete.`
+8. Prefer a small number of specific, executable moves over a wide survey. The owner can only act on what is concrete.
+9. Every action carries "goalContribution": your estimate of what it moves the goal metric by per month once it has taken effect, in dollars, plus one line on how you got there. Estimate honestly — a small number you can defend beats a large one you cannot. Use 0 when an action protects the goal rather than advancing it, and say so in the basis.`
 
-  if (memory.length === 0) return base
+  const withGoal = goal && pace ? `${base}
+
+## The goal
+
+${goal.label} of ${fmt(goal.target)}/mo by ${goal.byISO}.
+
+Today: ${fmt(pace.current)}/mo — ${pace.pctOfGoal.toFixed(0)}% of the way there, a gap of ${fmt(pace.gap)}/mo.
+Observed growth: ${pace.monthlyGrowthPct.toFixed(1)}%/mo.
+${
+  pace.monthsAtCurrentPace === null
+    ? 'At this rate the goal is never reached.'
+    : `At this rate it arrives in ${pace.monthsAtCurrentPace.toFixed(0)} months; there are ${pace.monthsRemaining.toFixed(0)} months left.`
+}${
+  pace.requiredMonthlyGrowthPct === null
+    ? ''
+    : ` Arriving on time needs ${pace.requiredMonthlyGrowthPct.toFixed(1)}%/mo.`
+} The business is ${pace.status}.
+
+This is the job. Lead with the gap when the gap is the story — if the required rate is well above the observed one, the owner needs to know that before they read a single proposal. Weigh proposals by what they contribute toward closing it, and say plainly when the biggest lever is something none of your available actions can touch.` : base
+
+  if (memory.length === 0) return withGoal
 
   const learned = memory
     .map((m) => `- ${ACTION_LABELS[m.type]} — rejected as "${m.reason}" (${m.headline})`)
     .join('\n')
 
-  return `${base}
+  return `${withGoal}
 
 ## What this owner has already told you
 
