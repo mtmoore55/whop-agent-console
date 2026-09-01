@@ -9,7 +9,7 @@ import type { MemoryEntry } from '@/lib/memory'
 import type { ActionType, BusinessState, Policy } from '@/lib/types'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60
+export const maxDuration = 120
 
 /** The brief's own choice, overridable without a redeploy. */
 const MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6'
@@ -17,8 +17,13 @@ const MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6'
 /**
  * Interactive request, so the agent gets a bounded budget rather than an
  * unbounded one. Anything slower than this is worse than the cached brief.
+ *
+ * This must stay comfortably under `maxDuration`. The SDK retries timeouts,
+ * so wall clock is TIMEOUT_MS x (maxRetries + 1) - with retries left on, a
+ * 30s budget could run 60s and the platform killed the function before the
+ * cached fallback could return. Retries are off here for that reason.
  */
-const TIMEOUT_MS = 30_000
+const TIMEOUT_MS = 55_000
 
 type Mode = 'live' | 'cached'
 
@@ -115,21 +120,27 @@ export async function POST(req: Request) {
   }
 
   try {
-    const client = new Anthropic({ maxRetries: 1 })
+    // A timeout must fail once and hand over to the cached brief, not retry
+    // into the function's hard limit.
+    const client = new Anthropic({ maxRetries: 0 })
 
-    const response = await client.messages.create(
+    // Streamed so a long thinking pass cannot trip an HTTP idle timeout; we
+    // only want the finished message.
+    const stream = client.messages.stream(
       {
         model: MODEL,
-        max_tokens: 16000,
+        max_tokens: 8000,
         thinking: { type: 'adaptive' },
-        // Medium keeps a morning digest inside a human-scale wait; the cached
+        // Low keeps a morning digest inside a human-scale wait. The cached
         // brief is a better outcome than a slow one.
-        output_config: { effort: 'medium' },
+        output_config: { effort: 'low' },
         system: buildSystemPrompt(memory),
         messages: [{ role: 'user', content: buildUserPrompt(state) }],
       },
       { timeout: TIMEOUT_MS },
     )
+
+    const response = await stream.finalMessage()
 
     if (response.stop_reason === 'refusal') throw new Error('model declined the request')
 

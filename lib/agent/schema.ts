@@ -118,8 +118,8 @@ const paramsByType = z.discriminatedUnion('type', [
 
 const commonProposal = {
   headline: z.string().min(1).max(160),
-  rationale: z.string().min(1).max(900),
-  evidence: z.array(z.string().min(1).max(160)).min(1).max(5),
+  rationale: z.string().min(1).max(1400),
+  evidence: z.array(z.string().min(1).max(200)).min(1).max(5),
 }
 
 export const modelActionSchema = z
@@ -129,7 +129,7 @@ export const modelActionSchema = z
     expectedImpact: z.object({
       metric: z.string().min(1).max(60),
       direction: z.enum(['up', 'down']),
-      estimate: z.string().min(1).max(60),
+      estimate: z.string().min(1).max(120),
       confidence: z.enum(['low', 'medium', 'high']),
     }),
     reversibility: z.enum(['instant', 'costly', 'irreversible']),
@@ -157,3 +157,25 @@ export type ModelAction = z.infer<typeof modelActionSchema>
 export type ModelObservation = z.infer<typeof modelObservationSchema>
 
 export { actionTypeSchema }
+
+/**
+ * The param contract, in the form the model is told about it.
+ *
+ * KEEP IN SYNC WITH `paramsByType` ABOVE. Without this in the system prompt
+ * the model has to guess field names and enum values, and it guesses wrong —
+ * measured: 3 of 4 proposals dropped, on `destination`, `audience`,
+ * `recipientCount` and `subject`.
+ */
+export const PARAMS_DOC = `"whop.pricing.update"             { productId: string, newPrice: number, appliesTo: "new_members"|"everyone" }
+"whop.promo.create"               { code: string, discountPct: 1-95, durationDays: 1-365, audience: "lapsed"|"active"|"all", maxRedemptions: integer, productId: string }
+"whop.affiliate.enable"           { ratePct: 1-90, cookieWindowDays: 1-365 }
+"whop.affiliate.set_rate"         { ratePct: 1-90 }
+"whop.bounty.create"              { title: string, rewardPerConversion: number, budget: number, goal: string }
+"whop.ads.campaign.create"        { name: string, platform: "meta"|"tiktok"|"x", dailyBudget: number, objective: string }
+"whop.ads.campaign.adjust_budget" { campaignId: string, newDailyBudget: number }
+"whop.ads.campaign.pause"         { campaignId: string }
+"whop.treasury.move"              { amount: number, destination: "yield"|"balance" }
+"whop.payout.schedule"            { recipient: string, amount: number, inDays: 0-365 }
+"whop.broadcast.send"             { audience: "lapsed"|"active"|"all", recipientCount: integer, subject: string, body: string }
+"whop.product.create"             { name: string, price: number, billing: "monthly"|"one_time" }
+"whop.checkout_link.create"       { name: string, productId: string, discountPct: 0-95 }`

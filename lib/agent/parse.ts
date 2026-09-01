@@ -39,6 +39,16 @@ export interface ParsedBrief {
   proposals: Proposal[]
   /** Proposals the model returned that failed validation and were discarded. */
   dropped: number
+  /** Why each one was dropped. A silent drop hides a schema that is too strict. */
+  droppedReasons: string[]
+}
+
+/** Compact, readable reason: which field, and what was wrong with it. */
+function why(err: { issues: { path: PropertyKey[]; message: string }[] }): string {
+  return err.issues
+    .slice(0, 3)
+    .map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`)
+    .join('; ')
 }
 
 const slug = (t: ActionType) => t.replace(/^whop\./, '').replace(/\./g, '_')
@@ -51,7 +61,7 @@ export function parseBrief(
   const envelope = modelBriefSchema.parse(JSON.parse(stripFences(raw)))
 
   const proposals: Proposal[] = []
-  let dropped = 0
+  const droppedReasons: string[] = []
 
   for (const [i, candidate] of envelope.proposals.entries()) {
     const kind = (candidate as { kind?: unknown })?.kind
@@ -59,7 +69,7 @@ export function parseBrief(
     if (kind === 'observation') {
       const parsed = modelObservationSchema.safeParse(candidate)
       if (!parsed.success) {
-        dropped++
+        droppedReasons.push(`observation — ${why(parsed.error)}`)
         continue
       }
       proposals.push({ ...parsed.data, id: `p_obs_${i}` } satisfies Observation)
@@ -68,7 +78,8 @@ export function parseBrief(
 
     const parsed = modelActionSchema.safeParse(candidate)
     if (!parsed.success) {
-      dropped++
+      const t = (candidate as { type?: string })?.type ?? 'unknown type'
+      droppedReasons.push(`${t} — ${why(parsed.error)}`)
       continue
     }
 
@@ -109,5 +120,10 @@ export function parseBrief(
     throw new Error('brief contained no observation')
   }
 
-  return { lede: envelope.lede, proposals: proposals.slice(0, 6), dropped }
+  return {
+    lede: envelope.lede,
+    proposals: proposals.slice(0, 6),
+    dropped: droppedReasons.length,
+    droppedReasons,
+  }
 }

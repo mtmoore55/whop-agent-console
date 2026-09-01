@@ -309,6 +309,26 @@ What the brief asked for still holds inside that system:
       the identical validator and can never drift from what live produces
 - [x] Automatic fallback on missing key, API error, refusal, timeout, or unparseable output
 - [x] Honest Live/Cached indicator naming the model, plus the reason cached ran
+- [x] Dropped proposals report *why* (`droppedReasons`) — a silent drop hides a schema
+      that is too strict, and hid exactly that here
+
+**Two bugs the live path only revealed once it ran against the real API.** Neither was
+visible from the cached path, which is worth remembering: cached mode exercises the parser
+but not the model.
+
+1. *Retry into the function limit.* The SDK retries timeouts, so a 30s budget with
+   `maxRetries: 1` could run 60s — past `maxDuration`, and Vercel killed the function
+   before the cached fallback could return. The user got `FUNCTION_INVOCATION_TIMEOUT`,
+   the one thing the fallback exists to prevent. Fixed: `maxRetries: 0`, streamed request,
+   budget kept well under `maxDuration`.
+2. *The prompt never gave the model the param contract.* It listed the thirteen action
+   types but not their fields or enum values, so the model guessed — `destination`,
+   `audience`, `recipientCount`, `subject` all came back wrong and **3 of 4 proposals were
+   dropped**. Fixed by putting the exact contract in the system prompt (`PARAMS_DOC`,
+   defined next to the Zod schema so the two stay in sync). Result: 0 dropped, 6 kept.
+
+Live runs take roughly 40s at `effort: 'low'`. That is a real wait; the brief stays on
+screen and the button reads "Reading the business…" until it returns.
 
 ### Milestone 3 — console + log ✅
 - [x] `/console`: per-type stance, three limits, live plain-language rendering

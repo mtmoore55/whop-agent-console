@@ -1,5 +1,6 @@
 import type { BusinessState } from '../types'
 import { ACTION_LABELS } from '../policy'
+import { PARAMS_DOC } from './schema'
 import type { MemoryEntry } from '../memory'
 
 /**
@@ -36,7 +37,7 @@ Action:
   "headline": string,            // one line, plain language, names the actual numbers
   "rationale": string,           // 2-3 sentences. Why now, not why in general.
   "evidence": string[],          // 1-5 items, each a metric that exists in the state
-  "expectedImpact": { "metric": string, "direction": "up"|"down", "estimate": string, "confidence": "low"|"medium"|"high" },
+  "expectedImpact": { "metric": string, "direction": "up"|"down", "estimate": string (short, e.g. "+$211/mo" or "+35 to +60"), "confidence": "low"|"medium"|"high" },
   "reversibility": "instant" | "costly" | "irreversible",
   "conflict": { "label": string, "detail": string }   // optional
 }
@@ -55,7 +56,13 @@ Observation (a do-nothing, keep-watching item):
 
 ${actionList}
 
-Params must match the action type exactly. Ids (productId, campaignId) must be real ids copied from the state.
+## Exact params for each action type
+
+Every field is required. Enum values are exact strings — no synonyms, no variants.
+
+${PARAMS_DOC}
+
+Ids (productId, campaignId) must be copied verbatim from the state. An action whose params do not match this contract is discarded before the owner ever sees it, so getting the shape right matters more than proposing one more idea.
 
 ## Rules
 
