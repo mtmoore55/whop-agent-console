@@ -314,7 +314,41 @@ What the brief asked for still holds inside that system:
 
 ---
 
-## 9. Constraints
+## 9. Deployment
+
+Repo: `github.com/mtmoore55/whop-agent-console` (private).
+Vercel project: `mtmoore55s-projects/whop-agent-console`.
+
+Vercel deployments are immutable, so **every milestone keeps a permanent URL**. Each one
+gets a git tag and an alias pinned to that exact build; nothing deployed later can move it
+unless the alias is re-pointed on purpose.
+
+| URL | Tag | What it serves |
+| --- | --- | --- |
+| `whop-agent-console-m1.vercel.app` | `milestone-1` | M1, frozen |
+| `whop-agent-console-m2.vercel.app` | `milestone-2` | — |
+| `whop-agent-console-m3.vercel.app` | `milestone-3` | — |
+| `whop-agent-console-m4.vercel.app` | `milestone-4` | — |
+| `whop-agent-console.vercel.app` | — | production; moves only on request |
+
+To cut a milestone:
+
+```bash
+git tag -a milestone-N -m "..." && git push origin milestone-N
+npx vercel deploy --prod=false --yes            # returns <deployment-url>
+npx vercel alias set <deployment-url> whop-agent-console-mN.vercel.app
+npx vercel alias set <deployment-url> whop-agent-console.vercel.app   # only when promoting
+```
+
+No auth, no deployment protection: all URLs return 200 anonymously, which is the point —
+this gets opened on a phone at odd hours.
+
+`vercel link` could not attach the GitHub repo (the Vercel GitHub App is not installed on
+it), so pushes do not auto-deploy. Deploys are CLI-driven, which is what keeps the
+per-milestone URLs stable. Installing the app from the Vercel project's Git settings would
+add push-to-deploy on `main` if that is ever wanted.
+
+## 10. Constraints
 
 - Never call the real Whop API. Every executor is local.
 - No auth. Anyone with the URL sees the demo.
