@@ -355,30 +355,20 @@ npx vercel alias set <deployment-url> whop-agent-console-mN.vercel.app
 npx vercel alias set <deployment-url> whop-agent-console.vercel.app   # only when promoting
 ```
 
-**Open item — the deployments are not public yet.** The Vercel project has SSO protection
-on (`ssoProtection.deploymentType: "all_except_custom_domains"`), so every `*.vercel.app`
-URL 302s to a Vercel login page for anyone without a session on this account. It renders
-fine for the owner, which is exactly what makes this easy to miss. The brief requires "no
-auth — anyone with the URL sees the demo", so this needs turning off:
+No auth, no deployment protection. The project's `ssoProtection` was on by default and
+silently gated every `*.vercel.app` URL behind a Vercel login — it still rendered for the
+owner, which is what made it easy to miss. It is now disabled, and verified the way it
+should have been the first time: status without following redirects, plus a check that the
+body is actually the app rather than a login page.
 
 ```bash
-npx vercel project protection disable --sso
+for u in <urls>; do
+  curl -s -o /dev/null -w '%{http_code}' "$u"        # 200, not 302
+  curl -s "$u" | grep -q "Churn jumped" && echo APP  # and it is the app
+done
 ```
 
-or Vercel dashboard → the project → Settings → Deployment Protection → Vercel
-Authentication → Disabled. Nothing in the deployment is sensitive: the data is a fictional
-seller, there is no API key set, and the repo stays private either way.
-
-**The deployment has no `ANTHROPIC_API_KEY`, so the agent always serves the cached brief**
-and says so on screen. That is the designed behaviour, not a failure. To turn on the live
-path, add the key to the Vercel project yourself and redeploy:
-
-```bash
-npx vercel env add ANTHROPIC_API_KEY production   # paste the key when prompted
-npx vercel deploy --prod --yes
-```
-
-Optionally set `ANTHROPIC_MODEL` alongside it to override `claude-sonnet-4-6`.
+Re-run that after anything that touches project settings. A 200 alone proves nothing.
 
 `vercel link` could not attach the GitHub repo (the Vercel GitHub App is not installed on
 it), so pushes do not auto-deploy. Deploys are CLI-driven, which is what keeps the
