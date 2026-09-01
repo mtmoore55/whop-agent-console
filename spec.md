@@ -200,6 +200,12 @@ Seeded at $100k/mo by Jun 2027 against $57,340 growing 4.1%/mo: 13.8 months of r
 against 9.9 remaining, needing 5.8%/mo. A goal the current pace already satisfies teaches
 the agent nothing, so the seed is deliberately behind.
 
+The strip also sums the whole brief against the gap. Per-card contributions read
+optimistically one at a time; the total is the number that says whether the agent's action
+set can reach the goal at all. On the seeded brief it is 8%, and the live agent's own first
+goal-aware run came to 6.3% — which is the honest answer to "can this agent get us to
+$100k" and the reason the line says so out loud.
+
 Proposals are **not** reordered by contribution. The ordering is decision weight, and
 re-sorting would bury the treasury conflict that the demo turns on.
 

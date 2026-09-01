@@ -168,12 +168,17 @@ export async function POST(req: Request) {
     })
   } catch (err) {
     // Never surface a stack trace. This gets opened on phones at odd hours.
+    // But "Agent call failed" for everything hides whether the API broke or
+    // the model's output was rejected, which are opposite problems.
+    const message = err instanceof Error ? err.message : ''
     const reason =
       err instanceof Anthropic.APIError
         ? `Anthropic API error ${err.status ?? ''}`.trim()
-        : err instanceof Error && /aborted|timeout/i.test(err.message)
+        : /aborted|timeout/i.test(message)
           ? 'Agent timed out'
-          : 'Agent call failed'
+          : message
+            ? `Agent output rejected — ${message.slice(0, 160)}`
+            : 'Agent call failed'
 
     return NextResponse.json(servedFromCache(state, policy, memory, reason))
   }

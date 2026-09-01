@@ -25,10 +25,19 @@ const LABEL = {
  * be wrong; this strip cannot, which is why the two sit next to each other.
  */
 export function GoalStrip() {
-  const { goal, pace, state } = useConsole()
+  const { goal, pace, state, brief } = useConsole()
   const tone = TONE[pace.status]
   const arrives = arrivalISO(state, pace)
   const late = pace.monthsAtCurrentPace !== null && pace.monthsAtCurrentPace - pace.monthsRemaining
+
+  // What the whole brief adds up to. Per-card contributions are easy to read
+  // optimistically one at a time; the sum is the number that tells you whether
+  // the agent's action set can reach the goal at all.
+  const offered = brief.proposals.reduce(
+    (a, p) => a + (p.kind === 'action' ? (p.goalContribution?.monthlyDelta ?? 0) : 0),
+    0,
+  )
+  const offeredShare = pace.gap > 0 ? (offered / pace.gap) * 100 : 0
 
   return (
     <div className="overflow-hidden rounded-xl border border-line bg-card">
@@ -90,6 +99,23 @@ export function GoalStrip() {
           )}
         </div>
       </div>
+
+      {offered > 0 && (
+        <div className="border-t border-line-soft bg-raise px-4 py-2.5 sm:px-5">
+          <span className="num text-[13px] text-mute">
+            Everything in today&apos;s brief adds up to{' '}
+            <span className="font-semibold text-ink">{money(offered)}/mo</span> —{' '}
+            <span className={offeredShare < 25 ? 'text-amber-11' : 'text-ink'}>
+              {offeredShare.toFixed(0)}% of the gap
+            </span>
+            {offeredShare < 25 && (
+              <span className="text-faint">
+                . Closing it needs something the agent cannot propose.
+              </span>
+            )}
+          </span>
+        </div>
+      )}
     </div>
   )
 }
