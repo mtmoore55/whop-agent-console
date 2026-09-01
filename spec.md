@@ -355,8 +355,19 @@ npx vercel alias set <deployment-url> whop-agent-console-mN.vercel.app
 npx vercel alias set <deployment-url> whop-agent-console.vercel.app   # only when promoting
 ```
 
-No auth, no deployment protection: all URLs return 200 anonymously, which is the point —
-this gets opened on a phone at odd hours.
+**Open item — the deployments are not public yet.** The Vercel project has SSO protection
+on (`ssoProtection.deploymentType: "all_except_custom_domains"`), so every `*.vercel.app`
+URL 302s to a Vercel login page for anyone without a session on this account. It renders
+fine for the owner, which is exactly what makes this easy to miss. The brief requires "no
+auth — anyone with the URL sees the demo", so this needs turning off:
+
+```bash
+npx vercel project protection disable --sso
+```
+
+or Vercel dashboard → the project → Settings → Deployment Protection → Vercel
+Authentication → Disabled. Nothing in the deployment is sensitive: the data is a fictional
+seller, there is no API key set, and the repo stays private either way.
 
 **The deployment has no `ANTHROPIC_API_KEY`, so the agent always serves the cached brief**
 and says so on screen. That is the designed behaviour, not a failure. To turn on the live
