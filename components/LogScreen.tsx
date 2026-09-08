@@ -144,8 +144,8 @@ export function LogScreen() {
           <p className="max-w-[68ch] text-[13px] leading-[1.6] text-faint">
             Undo restores the business state captured before that action ran, then replays
             everything that happened after it — so reverting an older action does not
-            silently drop the ones stacked on top. Settled balance is currently{' '}
-            {money(state.treasury.settled)}.
+            silently drop the ones stacked on top. Committed MRR is currently{' '}
+            {money(state.revenue.mrrCommitted)}/mo.
           </p>
         </footer>
       </div>

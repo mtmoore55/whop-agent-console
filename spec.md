@@ -59,22 +59,34 @@ exists. Design accordingly.
 
 ### `BusinessState` (`lib/types.ts`, seeded in `lib/seed.ts`)
 
-One specific, believable Whop seller. Numbers feel lived-in, not round.
+**Swolemates**, projected roughly eighteen months forward. The shape mirrors what the
+cofounder digest already measures, and the projection is anchored on the live database
+rather than invented.
 
-**"Range" — a paid trading-education community.**
+Read from production on 2026-09-08: 511 profiles, 57 paying plans, 324 live trials, 36
+crew riders, DAU 34 / WAU 71 / MAU 101, 1.73 riders on the crews that have any, and only
+about a third of paying owners have invited anyone at all.
 
-- 1,847 active members at $32/mo
-- MRR $57,340, up 4.1% over 30 days
-- Trailing 30-day churn 8.4%, up from 6.2% — **this is the story of the day**
-- 312 lapsed members in the last 90 days
-- Two products: the community ($32/mo) and a one-time course ($149)
-- Whop Ads: one active Meta campaign, $240/day, CAC $61, drifting up from $44
-- Affiliates: not enabled. Bounties: never used.
-- Balance $84,120 — $65,720 settled, $18,400 in a 3-day clearing window; **$61,000 sits idle**, earning nothing
-- Obligation: $12,400 creator payout due in 6 days
-- 3 open issues, one spiking: checkout webhook timeouts, 41 events/24h, correlated with a drop in completed mobile checkouts
+The projection improves the crew loop hard — it is the primary trial-to-paid motion — from
+1.63 people per plan to **2.35**, and stops well short of full five-seat crews. (The brief
+for this asked for ~4 per plan; that is close to the theoretical maximum and would have
+been the wishful version.)
 
-The agent reads this object. Actions mutate it.
+| | Seeded | Why |
+| --- | --- | --- |
+| Committed MRR | $28,158/mo | 3,980 yearly at $69.99 + 495 monthly at $9.99 |
+| Lapsing MRR | $1,840/mo | Auto-renew OFF, still inside a paid period. Already churned. |
+| Growth | +3.4%/mo | Against the 4.7%/mo needed for $100k by Dec 2028 |
+| People | 10,516 | 4,475 paying plans + 6,041 crew riders |
+| Trials | 415 live, 92 expiring in 3 days | ~30 starts/day |
+| Trial → paid | 31.4%, was 38.1% | Server cohort. **The story of the day.** |
+| Healthy crews | 1,795 of 4,475 | `active14 >= 2 && active14 * 2 >= members.length` |
+| Search Ads | $220/day, CPA $41 from $29 | Cost per paying plan, not per install |
+| Engagement | DAU 2,180 / MAU 7,240 | 30%, just under today's 34% |
+| Issues | 3, one spiking | `trial_recap()` timing out since Sep 5 |
+
+MRR is split the way the digest splits it: **committed** is auto-renew ON, **lapsing** is
+auto-renew OFF but still inside a paid period. Never treat lapsing as recurring.
 
 ### Action schema
 
@@ -83,20 +95,28 @@ validated against it and anything malformed is dropped.
 
 ```ts
 type ActionType =
-  | 'whop.pricing.update'
-  | 'whop.promo.create'
-  | 'whop.affiliate.enable'
-  | 'whop.affiliate.set_rate'
-  | 'whop.bounty.create'
-  | 'whop.ads.campaign.create'
-  | 'whop.ads.campaign.adjust_budget'
-  | 'whop.ads.campaign.pause'
-  | 'whop.treasury.move'
-  | 'whop.payout.schedule'
-  | 'whop.broadcast.send'
-  | 'whop.product.create'
-  | 'whop.checkout_link.create'
+  // The money model — App Store levers
+  | 'swolemates.pricing.update'
+  | 'swolemates.trial.set_length'
+  | 'swolemates.paywall.set_mode'      // app_config.trial_gate_mode
+  | 'swolemates.offer_code.create'
+  // Reaching members — their own backend
+  | 'swolemates.nudge.campaign'        // the bounded edge-function campaigns
+  | 'swolemates.push.broadcast'
+  | 'swolemates.email.campaign'
+  | 'swolemates.badge.schedule_monthly'
+  // Acquisition
+  | 'asa.campaign.create'
+  | 'asa.campaign.adjust_budget'
+  | 'asa.campaign.pause'
+  // Merch, on Whop
+  | 'whop.merch.promo.create'
+  | 'whop.merch.product.create'
 ```
+
+Swolemates monetises through Apple, not Whop, so the action set is mostly its own product
+levers. Whop keeps the merch store. This is the point made in §1: the console pattern
+transfers, the Whop-only action set does not.
 
 Every proposed action carries:
 
@@ -282,22 +302,26 @@ second undo afterwards is still correct. Only `instant` actions offer it; `costl
 
 ## 5. The two proposals that matter
 
-**The one you should reject** — `whop.treasury.move`: sweep $61,000 of idle balance into
-yield, correctly noting it earns nothing today. Real upside. But a $12,400 payout is due
-in 6 days, yield settles in 7, and the sweep leaves only $4,720 settled behind an $18,400
-clearing window. The console surfaces the obligation *adjacent to the balance the action
-touches* — and does **not** auto-block. The human catches it. That's the demo.
+**The one you should reject** — `swolemates.paywall.set_mode` back to `day0`: put the ask
+at day 0 so trials start with a card on file, which is how nearly every subscription app in
+the category monetises. Real upside, and the agent's arithmetic is sound. But this is the
+exact change reverted on 2026-08-18: under the day-0 wall, 262 of 268 non-invitee signups
+met it and **14% ever finished onboarding**. Retention here is crew-gated and crews only
+form between people already inside the app, so the wall suppressed the thing the product
+needs to work. The console surfaces that history adjacent to the proposal and does **not**
+auto-block. The human catches it. Note the reversibility: the flag flips back instantly,
+but the signups lost while it is on do not come back — so it is `costly`, not `instant`.
 
-**The one you should modify** — `whop.promo.create`: 40% off for 90 days to all 312 lapsed
-members. Blast radius 312; the code leaks to active members paying full price. The right
-move is to modify it down — lower discount, shorter window, capped redemptions. Modify has
-to make that a fifteen-second edit of real parameters.
+**The one you should modify** — `swolemates.offer_code.create`: 50% off for 12 months to
+all 1,240 expired trials. $43,394 of revenue at risk, and Apple offer codes are shareable,
+so anyone eligible can redeem one that leaks — including people who would have paid full
+price. The right move is to modify it down: lower discount, shorter duration, capped
+redemptions.
 
-The rest are genuinely good: enable affiliates at a suggested rate, a referral bounty,
-a rebudget of the campaign whose CAC is drifting, and one non-action flag on the checkout
-webhook errors recommending more data before acting.
-
----
+The rest are genuinely good: run `crew-invite-nudge` at the 1,180 trials with nobody
+accepted, open a Today-tab Search Ads campaign before January (blocked by the daily spend
+cap, with a one-time override), cut the drifting search campaign (auto-eligible), and one
+non-action flag on `trial_recap()` recommending nothing be read as demand until it is fixed.
 
 ## 6. The agent
 

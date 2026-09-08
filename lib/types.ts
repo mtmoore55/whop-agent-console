@@ -10,130 +10,150 @@
 /* Business state                                                      */
 /* ------------------------------------------------------------------ */
 
-export type BillingPeriod = 'monthly' | 'one_time'
+export type BillingPeriod = 'monthly' | 'yearly'
 
-export interface Product {
+export interface AsaCampaign {
+  id: string
+  name: string
+  /** Apple Search Ads placement. */
+  placement: 'search_results' | 'search_tab' | 'today_tab'
+  dailyBudget: number
+  status: 'active' | 'paused'
+  /** Cost per paying plan, not per install. */
+  cpa: number
+  cpaPrior: number
+  spend30d: number
+  installs30d: number
+  plans30d: number
+}
+
+export interface OfferCode {
+  id: string
+  name: string
+  discountPct: number
+  durationMonths: number
+  audience: 'expired_trials' | 'lapsed_payers' | 'riders'
+  maxRedemptions: number
+  redeemed: number
+  createdAtISO: string
+}
+
+export interface NudgeCampaign {
+  id: string
+  /** The edge function that runs it. */
+  fn: string
+  audience: string
+  audienceSize: number
+  status: 'running' | 'stopped'
+  startedAtISO: string
+}
+
+export interface MerchProduct {
   id: string
   name: string
   price: number
-  billing: BillingPeriod
-  activeMembers: number
+  soldLifetime: number
 }
 
-export interface AdCampaign {
-  id: string
-  name: string
-  platform: 'meta' | 'tiktok' | 'x'
-  dailyBudget: number
-  status: 'active' | 'paused'
-  cac: number
-  cacPrior: number
-  spend30d: number
-  conversions30d: number
-}
-
-export interface Promo {
+export interface MerchPromo {
   id: string
   code: string
   discountPct: number
   durationDays: number
-  audience: 'lapsed' | 'active' | 'all'
   maxRedemptions: number
-  productId: string
   createdAtISO: string
-}
-
-export interface Bounty {
-  id: string
-  title: string
-  rewardPerConversion: number
-  budget: number
-  goal: string
-  status: 'open' | 'closed'
-}
-
-export interface Broadcast {
-  id: string
-  audience: 'lapsed' | 'active' | 'all'
-  recipientCount: number
-  subject: string
-  sentAtISO: string
-}
-
-export interface CheckoutLink {
-  id: string
-  name: string
-  productId: string
-  discountPct: number
-}
-
-export interface Obligation {
-  id: string
-  label: string
-  amount: number
-  dueInDays: number
 }
 
 export interface Issue {
   id: string
   title: string
   events24h: number
+  usersAffected24h: number
   trend: 'spiking' | 'flat' | 'cooling'
   firstSeenISO: string
   note?: string
 }
 
+/**
+ * Swolemates, shaped the way the cofounder digest already measures it:
+ * committed MRR (auto-renew ON) split from lapsing (auto-renew OFF but still
+ * inside a paid period), Healthy Crews as the product north star, and the
+ * trial as the thing conversion actually turns on.
+ */
 export interface BusinessState {
   business: {
     name: string
     handle: string
     tagline: string
-    /** The in-fiction "today". Everything relative is measured from here. */
     todayISO: string
   }
-  members: {
-    active: number
-    lapsed90d: number
-  }
   revenue: {
-    mrr: number
+    /** Auto-renew ON — revenue that actually recurs. This is the headline. */
+    mrrCommitted: number
+    /** Auto-renew OFF, still inside a paid period. Already-churned money. */
+    mrrLapsing: number
     mrrChangePct30d: number
-    arpu: number
+    arr: number
+    yearlyPlans: number
+    monthlyPlans: number
+    yearlyPrice: number
+    monthlyPrice: number
   }
-  churn: {
-    trailing30dPct: number
-    priorPct: number
+  members: {
+    payingPlans: number
+    /** Crew members riding on an owner's seat. Not payers. */
+    riders: number
+    people: number
+    signups24h: number
+    dau: number
+    wau: number
+    mau: number
   }
-  products: Product[]
-  ads: {
-    campaigns: AdCampaign[]
+  trials: {
+    live: number
+    started24h: number
+    expiringNext3Days: number
+    /** Matured 60-day cohort conversion, split by where the trial came from. */
+    serverToPaidPct: number
+    serverToPaidPctPrior: number
+    storekitToPaidPct: number
+    expiredNeverPaid: number
   }
-  affiliates: {
-    enabled: boolean
-    ratePct: number | null
+  crews: {
+    /** active14 >= 2 && active14 * 2 >= members.length */
+    healthy: number
+    emerging: number
+    solo: number
+    avgMembers: number
+    inviteAcceptPct7d: number
+    ownersWhoInvited: number
   }
-  bounties: Bounty[]
-  promos: Promo[]
-  broadcasts: Broadcast[]
-  checkoutLinks: CheckoutLink[]
-  treasury: {
-    /** Everything, settled or not. */
-    balance: number
-    /** Settled and immediately spendable. */
-    settled: number
-    /** Card volume inside the clearing window. */
-    pendingClearance: number
-    pendingClearsInDays: number
-    /** Settled cash earning nothing. */
-    idle: number
-    inYield: number
-    /** Days to pull money back out of the yield product. */
-    yieldSettlementDays: number
-    yieldAprPct: number
-    /** Earliest date swept funds could be accessed again. */
-    yieldAccessibleFromISO: string | null
+  retention: {
+    autoRenewOff24h: number
+    payingCancels24h: number
+    atRiskMrr: number
   }
-  obligations: Obligation[]
+  ads: { campaigns: AsaCampaign[] }
+  appStore: {
+    rating: number
+    ratingCount: number
+    version: string
+    proceedsLastMonth: number
+    installs30d: number
+  }
+  config: {
+    trialDays: number
+    /** app_config.trial_gate_mode — the kill switch back to the day-0 paywall. */
+    paywallMode: 'server14' | 'day0'
+    /** Months of monthly-badge artwork ready to ship. Alerts at 3 or fewer. */
+    badgeArtworkRunwayMonths: number
+  }
+  offerCodes: OfferCode[]
+  nudges: NudgeCampaign[]
+  merch: {
+    products: MerchProduct[]
+    promos: MerchPromo[]
+  }
   issues: Issue[]
   /** Dollars the agent has already committed today, for the daily cap. */
   agentSpendToday: number
@@ -144,67 +164,94 @@ export interface BusinessState {
 /* ------------------------------------------------------------------ */
 
 export type ActionType =
-  | 'whop.pricing.update'
-  | 'whop.promo.create'
-  | 'whop.affiliate.enable'
-  | 'whop.affiliate.set_rate'
-  | 'whop.bounty.create'
-  | 'whop.ads.campaign.create'
-  | 'whop.ads.campaign.adjust_budget'
-  | 'whop.ads.campaign.pause'
-  | 'whop.treasury.move'
-  | 'whop.payout.schedule'
-  | 'whop.broadcast.send'
-  | 'whop.product.create'
-  | 'whop.checkout_link.create'
+  | 'swolemates.nudge.campaign'
+  | 'swolemates.push.broadcast'
+  | 'swolemates.email.campaign'
+  | 'swolemates.offer_code.create'
+  | 'swolemates.pricing.update'
+  | 'swolemates.trial.set_length'
+  | 'swolemates.paywall.set_mode'
+  | 'swolemates.badge.schedule_monthly'
+  | 'asa.campaign.create'
+  | 'asa.campaign.adjust_budget'
+  | 'asa.campaign.pause'
+  | 'whop.merch.promo.create'
+  | 'whop.merch.product.create'
 
 export const ACTION_TYPES: ActionType[] = [
-  'whop.pricing.update',
-  'whop.promo.create',
-  'whop.affiliate.enable',
-  'whop.affiliate.set_rate',
-  'whop.bounty.create',
-  'whop.ads.campaign.create',
-  'whop.ads.campaign.adjust_budget',
-  'whop.ads.campaign.pause',
-  'whop.treasury.move',
-  'whop.payout.schedule',
-  'whop.broadcast.send',
-  'whop.product.create',
-  'whop.checkout_link.create',
+  'swolemates.nudge.campaign',
+  'swolemates.push.broadcast',
+  'swolemates.email.campaign',
+  'swolemates.offer_code.create',
+  'swolemates.pricing.update',
+  'swolemates.trial.set_length',
+  'swolemates.paywall.set_mode',
+  'swolemates.badge.schedule_monthly',
+  'asa.campaign.create',
+  'asa.campaign.adjust_budget',
+  'asa.campaign.pause',
+  'whop.merch.promo.create',
+  'whop.merch.product.create',
 ]
 
+export type NudgeAudience =
+  | 'trial_no_crew'
+  | 'trial_expiring'
+  | 'signed_up_no_trial'
+  | 'lapsed_owners'
+  | 'riders_after_owner_lapse'
+
 export interface ActionParams {
-  'whop.pricing.update': { productId: string; newPrice: number; appliesTo: 'new_members' | 'everyone' }
-  'whop.promo.create': {
+  'swolemates.nudge.campaign': {
+    fn: string
+    audience: NudgeAudience
+    audienceSize: number
+    /** Bounded on purpose — notifications.md caps campaign cadence. */
+    maxSends: number
+    days: number
+  }
+  'swolemates.push.broadcast': {
+    audience: NudgeAudience | 'everyone'
+    recipientCount: number
+    title: string
+    body: string
+  }
+  'swolemates.email.campaign': {
+    audience: NudgeAudience
+    recipientCount: number
+    subject: string
+  }
+  'swolemates.offer_code.create': {
+    name: string
+    discountPct: number
+    durationMonths: number
+    audience: 'expired_trials' | 'lapsed_payers' | 'riders'
+    maxRedemptions: number
+  }
+  'swolemates.pricing.update': {
+    period: BillingPeriod
+    newPrice: number
+    /** Apple requires consent from existing subscribers for an increase. */
+    appliesTo: 'new_only' | 'everyone'
+  }
+  'swolemates.trial.set_length': { days: number }
+  'swolemates.paywall.set_mode': { mode: 'server14' | 'day0' }
+  'swolemates.badge.schedule_monthly': { months: number; coach: string }
+  'asa.campaign.create': {
+    name: string
+    placement: 'search_results' | 'search_tab' | 'today_tab'
+    dailyBudget: number
+    keywordTheme: string
+  }
+  'asa.campaign.adjust_budget': { campaignId: string; newDailyBudget: number }
+  'asa.campaign.pause': { campaignId: string }
+  'whop.merch.promo.create': {
     code: string
     discountPct: number
     durationDays: number
-    audience: 'lapsed' | 'active' | 'all'
     maxRedemptions: number
-    productId: string
   }
-  'whop.affiliate.enable': { ratePct: number; cookieWindowDays: number }
-  'whop.affiliate.set_rate': { ratePct: number }
-  'whop.bounty.create': { title: string; rewardPerConversion: number; budget: number; goal: string }
-  'whop.ads.campaign.create': {
-    name: string
-    platform: 'meta' | 'tiktok' | 'x'
-    dailyBudget: number
-    objective: string
-  }
-  'whop.ads.campaign.adjust_budget': { campaignId: string; newDailyBudget: number }
-  'whop.ads.campaign.pause': { campaignId: string }
-  'whop.treasury.move': { amount: number; destination: 'yield' | 'balance' }
-  'whop.payout.schedule': { recipient: string; amount: number; inDays: number }
-  'whop.broadcast.send': {
-    audience: 'lapsed' | 'active' | 'all'
-    recipientCount: number
-    subject: string
-    body: string
-  }
-  'whop.product.create': { name: string; price: number; billing: BillingPeriod }
-  'whop.checkout_link.create': { name: string; productId: string; discountPct: number }
+  'whop.merch.product.create': { name: string; price: number }
 }
 
 export type Reversibility = 'instant' | 'costly' | 'irreversible'

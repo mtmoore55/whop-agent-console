@@ -67,9 +67,9 @@ function Cell({
  */
 export function StateStrip() {
   const { state, goal, pace, brief } = useConsole()
-  const camp = state.ads.campaigns[0]
+  const camp = state.ads.campaigns.find((c) => c.status === 'active')
   const spiking = state.issues.filter((i) => i.trend === 'spiking').length
-  const churnDelta = state.churn.trailing30dPct - state.churn.priorPct
+  const convDelta = state.trials.serverToPaidPct - state.trials.serverToPaidPctPrior
 
   const offered = brief.proposals.reduce(
     (a, p) => a + (p.kind === 'action' ? (p.goalContribution?.monthlyDelta ?? 0) : 0),
@@ -81,8 +81,8 @@ export function StateStrip() {
     <div className="overflow-hidden rounded-xl border border-line bg-line">
       <div className="grid grid-cols-2 gap-px @xl:grid-cols-3 @5xl:grid-cols-6">
         <Cell
-          label={<>MRR → {compactMoney(goal.target)}/mo</>}
-          value={money(state.revenue.mrr)}
+          label={<>Committed MRR → {compactMoney(goal.target)}/mo</>}
+          value={money(state.revenue.mrrCommitted)}
           tag={<Tag tone={GOAL_TONE[pace.status]}>{GOAL_LABEL[pace.status]}</Tag>}
           sub={
             pace.requiredMonthlyGrowthPct === null
@@ -92,51 +92,54 @@ export function StateStrip() {
                 )}%/mo, doing ${signedPct(state.revenue.mrrChangePct30d)}`
           }
           askLabel="MRR against the goal"
-          ask={`We are at ${money(state.revenue.mrr)}/mo against a ${money(
+          ask={`We are at ${money(state.revenue.mrrCommitted)}/mo committed against a ${money(
             goal.target,
           )}/mo goal by ${goal.byISO}, growing ${state.revenue.mrrChangePct30d}%/mo when we need ${pace.requiredMonthlyGrowthPct?.toFixed(
             1,
-          )}%/mo. What is the fastest realistic path to close that gap?`}
+          )}%/mo. There is also ${money(
+            state.revenue.mrrLapsing,
+          )}/mo lapsing. What is the fastest realistic path to close that gap?`}
           className="col-span-2"
         />
         <Cell
-          label="Churn 30d"
-          value={pct(state.churn.trailing30dPct)}
+          label="Trial → paid"
+          value={pct(state.trials.serverToPaidPct)}
           tone="bad"
-          sub={`↑ ${churnDelta.toFixed(1)}pt from ${pct(state.churn.priorPct)}`}
-          askLabel="churn"
-          ask={`Churn went from ${pct(state.churn.priorPct)} to ${pct(
-            state.churn.trailing30dPct,
-          )} over 30 days. What is most likely causing it, and what would you check first?`}
+          sub={`↓ ${Math.abs(convDelta).toFixed(1)}pt from ${pct(state.trials.serverToPaidPctPrior)}`}
+          askLabel="trial conversion"
+          ask={`Server-trial conversion went from ${pct(
+            state.trials.serverToPaidPctPrior,
+          )} to ${pct(state.trials.serverToPaidPct)}, while trial_recap() has been timing out since Sep 5. How much of the drop is the bug and how much is real?`}
         />
         <Cell
-          label="CAC"
-          value={camp ? money(camp.cac) : '—'}
-          tone={camp && camp.cac > camp.cacPrior ? 'bad' : 'ink'}
-          sub={camp ? `↑ from ${money(camp.cacPrior)}` : 'no campaigns'}
-          askLabel="CAC"
+          label="Healthy crews"
+          value={count(state.crews.healthy)}
+          sub={`of ${count(state.members.payingPlans)} plans · ${state.crews.avgMembers} avg`}
+          askLabel="healthy crews"
+          ask={`We have ${count(state.crews.healthy)} healthy crews of ${count(
+            state.members.payingPlans,
+          )} paying plans, averaging ${state.crews.avgMembers} members, with ${count(
+            state.crews.solo,
+          )} owners who have nobody. Crew activation is our primary trial-to-paid motion. What moves this most?`}
+        />
+        <Cell
+          label="Search Ads CPA"
+          value={camp ? money(camp.cpa) : '—'}
+          tone={camp && camp.cpa > camp.cpaPrior ? 'bad' : 'ink'}
+          sub={camp ? `↑ from ${money(camp.cpaPrior)}` : 'no campaigns'}
+          askLabel="Search Ads CPA"
           ask={
             camp
-              ? `CAC on the Meta campaign went from ${money(camp.cacPrior)} to ${money(
-                  camp.cac,
-                )} with no creative change, on ${money(camp.dailyBudget)}/day. Is this worth fixing or should I cut the spend?`
-              : 'I have no active ad campaigns. Is paid acquisition worth starting given the goal?'
+              ? `Apple Search Ads CPA went from ${money(camp.cpaPrior)} to ${money(
+                  camp.cpa,
+                )} with no creative change, on ${money(
+                  camp.dailyBudget,
+                )}/day. A yearly plan is ${money(
+                  state.revenue.yearlyPrice,
+                  { cents: true },
+                )}. Is this still paying back?`
+              : 'We have no active Search Ads campaigns. Is paid acquisition worth starting given the goal?'
           }
-        />
-        <Cell
-          label="Balance"
-          value={money(state.treasury.balance)}
-          sub={
-            state.treasury.inYield > 0
-              ? `${money(state.treasury.inYield)} in yield`
-              : `${money(state.treasury.idle)} idle`
-          }
-          askLabel="the balance"
-          ask={`I hold ${money(state.treasury.balance)}, of which ${money(
-            state.treasury.idle,
-          )} is idle, with a ${money(
-            state.obligations[0]?.amount ?? 0,
-          )} payout due in ${state.obligations[0]?.dueInDays ?? 0} days. What should I do with the idle cash?`}
         />
         <Cell
           label="Open issues"
@@ -145,8 +148,8 @@ export function StateStrip() {
           sub={spiking > 0 ? `${count(spiking)} spiking` : 'all cooling'}
           askLabel="open issues"
           ask={`${state.issues
-            .map((i) => `${i.title} (${i.events24h} events/24h, ${i.trend})`)
-            .join('; ')}. How much of my churn could these explain, and which do I fix first?`}
+            .map((i) => `${i.title} (${i.events24h} events/24h, ${i.usersAffected24h} users, ${i.trend})`)
+            .join('; ')}. Which is costing us the most money right now?`}
         />
       </div>
 

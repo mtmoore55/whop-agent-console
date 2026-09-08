@@ -1,6 +1,6 @@
 'use client'
 
-import { count, daysFromNow, money, shortDate } from '@/lib/format'
+import { count, money } from '@/lib/format'
 import { useConsole } from '@/lib/store'
 import type { ActionParams, ProposedAction } from '@/lib/types'
 import { Eyebrow } from './ui'
@@ -26,55 +26,38 @@ export function ConflictNote({ action }: { action: ProposedAction }) {
 
   let ledger: React.ReactNode = null
 
-  if (action.type === 'whop.treasury.move') {
-    const p = action.params as ActionParams['whop.treasury.move']
-    const t = state.treasury
-    const settledAfter = p.destination === 'yield' ? t.settled - p.amount : t.settled + p.amount
-    const soonest = state.obligations.slice().sort((a, b) => a.dueInDays - b.dueInDays)[0]
-    const short = soonest ? settledAfter < soonest.amount : false
-
-    ledger = (
+  if (action.type === 'swolemates.paywall.set_mode') {
+    const p = action.params as ActionParams['swolemates.paywall.set_mode']
+    ledger = p.mode === 'day0' ? (
       <div className="mt-3 divide-y divide-line-soft border-t border-line-soft pt-1">
-        <Row label="Settled cash today" value={money(t.settled)} />
-        <Row label="Settled after this move" value={money(settledAfter)} hot={short} />
-        {soonest && (
-          <Row
-            label={`${soonest.label} · ${shortDate(daysFromNow(state.business.todayISO, soonest.dueInDays))}`}
-            value={`−${money(soonest.amount)}`}
-            hot={short}
-          />
-        )}
-        <Row
-          label={`Clears in ${count(t.pendingClearsInDays)} days (unsettled)`}
-          value={money(t.pendingClearance)}
-        />
-        <Row
-          label="Money back out of yield"
-          value={`${count(t.yieldSettlementDays)} days`}
-          hot={soonest ? t.yieldSettlementDays > soonest.dueInDays : false}
-        />
+        <Row label="Non-invitee signups that met the day-0 wall" value="262 of 268" hot />
+        <Row label="Finished onboarding under it" value="14%" hot />
+        <Row label="Trials mid-flight right now" value={count(state.trials.live)} />
+        <Row label="Arrivals over the next 30 days" value={count(state.members.signups24h * 30)} />
+        <Row label="Reverted to trial-first on" value="Aug 18, 2026" />
       </div>
-    )
+    ) : null
   }
 
-  if (action.type === 'whop.promo.create') {
-    const p = action.params as ActionParams['whop.promo.create']
-    const seenBy =
-      p.audience === 'lapsed'
-        ? state.members.lapsed90d
-        : p.audience === 'active'
-          ? state.members.active
-          : state.members.active + state.members.lapsed90d
-    // A code sent to lapsed members is still visible to everyone paying full price.
-    const reachable = state.members.active + state.members.lapsed90d
-
+  if (action.type === 'swolemates.offer_code.create') {
+    const p = action.params as ActionParams['swolemates.offer_code.create']
+    const monthly = state.revenue.yearlyPrice / 12
     ledger = (
       <div className="mt-3 divide-y divide-line-soft border-t border-line-soft pt-1">
-        <Row label="Sent to" value={`${count(seenBy)} members`} />
-        <Row label="Can actually use it if it leaks" value={`${count(reachable)} members`} hot />
-        <Row label="Live for" value={`${count(p.durationDays)} days`} />
+        <Row label="Intended audience" value={`${count(action.blastRadius)} people`} />
+        <Row
+          label="Could redeem it if the code spreads"
+          value={`${count(state.members.people)} members`}
+          hot
+        />
+        <Row label="Discount" value={`${p.discountPct}% for ${p.durationMonths} months`} />
         <Row label="Redemption cap" value={count(p.maxRedemptions)} />
-        <Row label="Worst case if fully redeemed" value={money(action.maxCost)} hot />
+        <Row
+          label="Worst case if fully redeemed"
+          value={money(action.maxCost)}
+          hot
+        />
+        <Row label="Full price per plan" value={`${money(monthly, { cents: true })}/mo`} />
       </div>
     )
   }

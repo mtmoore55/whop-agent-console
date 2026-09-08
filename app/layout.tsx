@@ -11,8 +11,8 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Range — Agent Console',
-  description: 'The approval gate for an agent-run business on Whop.',
+  title: 'Swolemates — Agent Console',
+  description: 'The approval gate for an agent-run business.',
 }
 
 export const viewport: Viewport = {

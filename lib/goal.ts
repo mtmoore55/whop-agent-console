@@ -27,7 +27,7 @@ function monthsBetween(fromISO: string, toISO: string): number {
 }
 
 export function goalPace(state: BusinessState, goal: Goal): GoalPace {
-  const current = state.revenue.mrr
+  const current = state.revenue.mrrCommitted
   const target = goal.target
   const gap = Math.max(0, target - current)
   const growth = state.revenue.mrrChangePct30d / 100

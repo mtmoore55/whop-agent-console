@@ -19,28 +19,30 @@ const STANCES: { value: PolicyStance; label: string }[] = [
 
 const GROUPS: { label: string; types: ActionType[] }[] = [
   {
-    label: 'Money',
-    types: ['whop.treasury.move', 'whop.payout.schedule', 'whop.pricing.update'],
-  },
-  {
-    label: 'Growth',
+    label: 'The money model',
     types: [
-      'whop.ads.campaign.create',
-      'whop.ads.campaign.adjust_budget',
-      'whop.ads.campaign.pause',
-      'whop.affiliate.enable',
-      'whop.affiliate.set_rate',
-      'whop.bounty.create',
+      'swolemates.pricing.update',
+      'swolemates.trial.set_length',
+      'swolemates.paywall.set_mode',
+      'swolemates.offer_code.create',
     ],
   },
   {
-    label: 'Members',
+    label: 'Reaching members',
     types: [
-      'whop.promo.create',
-      'whop.broadcast.send',
-      'whop.product.create',
-      'whop.checkout_link.create',
+      'swolemates.nudge.campaign',
+      'swolemates.push.broadcast',
+      'swolemates.email.campaign',
+      'swolemates.badge.schedule_monthly',
     ],
+  },
+  {
+    label: 'Apple Search Ads',
+    types: ['asa.campaign.create', 'asa.campaign.adjust_budget', 'asa.campaign.pause'],
+  },
+  {
+    label: 'Merch on Whop',
+    types: ['whop.merch.promo.create', 'whop.merch.product.create'],
   },
 ]
 

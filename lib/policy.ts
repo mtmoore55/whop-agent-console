@@ -16,31 +16,29 @@ import { count, money } from './format'
  */
 
 export const ACTION_LABELS: Record<ActionType, string> = {
-  'whop.pricing.update': 'Change prices',
-  'whop.promo.create': 'Create promos',
-  'whop.affiliate.enable': 'Enable affiliates',
-  'whop.affiliate.set_rate': 'Set affiliate rate',
-  'whop.bounty.create': 'Create bounties',
-  'whop.ads.campaign.create': 'Launch ad campaigns',
-  'whop.ads.campaign.adjust_budget': 'Adjust ad budgets',
-  'whop.ads.campaign.pause': 'Pause ad campaigns',
-  'whop.treasury.move': 'Move treasury funds',
-  'whop.payout.schedule': 'Schedule payouts',
-  'whop.broadcast.send': 'Message members',
-  'whop.product.create': 'Create products',
-  'whop.checkout_link.create': 'Create checkout links',
+  'swolemates.nudge.campaign': 'Run nudge campaigns',
+  'swolemates.push.broadcast': 'Push to members',
+  'swolemates.email.campaign': 'Email members',
+  'swolemates.offer_code.create': 'Create offer codes',
+  'swolemates.pricing.update': 'Change the subscription price',
+  'swolemates.trial.set_length': 'Change the trial length',
+  'swolemates.paywall.set_mode': 'Change the paywall gate',
+  'swolemates.badge.schedule_monthly': 'Schedule badge artwork',
+  'asa.campaign.create': 'Launch Search Ads campaigns',
+  'asa.campaign.adjust_budget': 'Adjust Search Ads budgets',
+  'asa.campaign.pause': 'Pause Search Ads campaigns',
+  'whop.merch.promo.create': 'Create merch promos',
+  'whop.merch.product.create': 'Create merch products',
 }
 
 /**
- * The daily cap governs *agent spend* — dollars that actually leave the
- * business. Moving your own money between your own accounts is not spend, so
- * a treasury sweep is measured against the per-action ceiling, not this cap.
+ * The daily cap governs *agent spend* — dollars that actually leave. Apple
+ * Search Ads is the only thing here that spends cash; an offer code gives up
+ * revenue it never had, and a nudge costs a push notification.
  */
 export const SPEND_ACTION_TYPES: ReadonlySet<ActionType> = new Set<ActionType>([
-  'whop.ads.campaign.create',
-  'whop.ads.campaign.adjust_budget',
-  'whop.bounty.create',
-  'whop.payout.schedule',
+  'asa.campaign.create',
+  'asa.campaign.adjust_budget',
 ])
 
 export function countsAsSpend(type: ActionType): boolean {
@@ -49,23 +47,23 @@ export function countsAsSpend(type: ActionType): boolean {
 
 export const DEFAULT_POLICY: Policy = {
   perType: {
-    'whop.pricing.update': 'never',
-    'whop.promo.create': 'ask',
-    'whop.affiliate.enable': 'auto',
-    'whop.affiliate.set_rate': 'auto',
-    'whop.bounty.create': 'ask',
-    'whop.ads.campaign.create': 'ask',
-    'whop.ads.campaign.adjust_budget': 'auto',
-    'whop.ads.campaign.pause': 'auto',
-    'whop.treasury.move': 'ask',
-    'whop.payout.schedule': 'never',
-    'whop.broadcast.send': 'ask',
-    'whop.product.create': 'ask',
-    'whop.checkout_link.create': 'auto',
+    'swolemates.nudge.campaign': 'ask',
+    'swolemates.push.broadcast': 'ask',
+    'swolemates.email.campaign': 'ask',
+    'swolemates.offer_code.create': 'ask',
+    'swolemates.pricing.update': 'never',
+    'swolemates.trial.set_length': 'ask',
+    'swolemates.paywall.set_mode': 'ask',
+    'swolemates.badge.schedule_monthly': 'auto',
+    'asa.campaign.create': 'ask',
+    'asa.campaign.adjust_budget': 'auto',
+    'asa.campaign.pause': 'auto',
+    'whop.merch.promo.create': 'ask',
+    'whop.merch.product.create': 'ask',
   },
   dailySpendCapUSD: 400,
   perActionCostCeilingUSD: 250,
-  broadcastCeiling: 50,
+  broadcastCeiling: 500,
 }
 
 /**
