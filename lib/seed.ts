@@ -67,18 +67,28 @@ export const SEED_STATE: BusinessState = {
   ads: {
     campaigns: [
       {
-        id: 'asa_search_core',
-        name: 'Search results — fitness accountability',
-        placement: 'search_results',
-        dailyBudget: 220,
+        id: 'whop_discover',
+        name: 'Whop Discover — fitness communities',
+        placement: 'discover',
+        dailyBudget: 180,
         status: 'active',
-        cpa: 41,
-        cpaPrior: 29,
-        spend30d: 6180,
-        installs30d: 2940,
-        plans30d: 151,
+        cpa: 38,
+        cpaPrior: 27,
+        spend30d: 5240,
+        installs30d: 2310,
+        plans30d: 138,
       },
     ],
+  },
+  whop: {
+    // The plan is App Store only today, so Apple takes its cut of every sale.
+    planListed: false,
+    appleFeePct: 15,
+    whopFeePct: 3,
+    affiliates: { enabled: false, ratePct: null },
+    bounties: [],
+    appPublished: false,
+    reachableMembers: 8400,
   },
   appStore: {
     rating: 4.7,

@@ -19,30 +19,29 @@ const STANCES: { value: PolicyStance; label: string }[] = [
 
 const GROUPS: { label: string; types: ActionType[] }[] = [
   {
-    label: 'The money model',
+    label: 'Selling on Whop',
+    types: ['whop.plan.create', 'whop.promo.create', 'whop.app.publish', 'whop.merch.promo.create'],
+  },
+  {
+    label: 'Growth surfaces',
     types: [
-      'swolemates.pricing.update',
-      'swolemates.trial.set_length',
-      'swolemates.paywall.set_mode',
-      'swolemates.offer_code.create',
+      'whop.affiliate.enable',
+      'whop.affiliate.set_rate',
+      'whop.bounty.create',
+      'whop.notification.send',
     ],
   },
   {
-    label: 'Reaching members',
+    label: 'Whop Ads',
     types: [
-      'swolemates.nudge.campaign',
-      'swolemates.push.broadcast',
-      'swolemates.email.campaign',
-      'swolemates.badge.schedule_monthly',
+      'whop.ads.campaign.create',
+      'whop.ads.campaign.adjust_budget',
+      'whop.ads.campaign.pause',
     ],
   },
   {
-    label: 'Apple Search Ads',
-    types: ['asa.campaign.create', 'asa.campaign.adjust_budget', 'asa.campaign.pause'],
-  },
-  {
-    label: 'Merch on Whop',
-    types: ['whop.merch.promo.create', 'whop.merch.product.create'],
+    label: 'Inside the app',
+    types: ['swolemates.paywall.set_mode', 'swolemates.nudge.campaign'],
   },
 ]
 

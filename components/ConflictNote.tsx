@@ -39,25 +39,33 @@ export function ConflictNote({ action }: { action: ProposedAction }) {
     ) : null
   }
 
-  if (action.type === 'swolemates.offer_code.create') {
-    const p = action.params as ActionParams['swolemates.offer_code.create']
-    const monthly = state.revenue.yearlyPrice / 12
+  if (action.type === 'whop.plan.create') {
+    const p = action.params as ActionParams['whop.plan.create']
+    const apple = (state.revenue.yearlyPrice * state.whop.appleFeePct) / 100
+    const whop = (p.price * state.whop.whopFeePct) / 100
     ledger = (
       <div className="mt-3 divide-y divide-line-soft border-t border-line-soft pt-1">
-        <Row label="Intended audience" value={`${count(action.blastRadius)} people`} />
+        <Row label="List price" value={money(p.price, { cents: true })} />
+        <Row label={`Apple keeps (${state.whop.appleFeePct}%)`} value={`−${money(apple, { cents: true })}`} hot />
+        <Row label={`Whop keeps (${state.whop.whopFeePct}%)`} value={`−${money(whop, { cents: true })}`} />
         <Row
-          label="Could redeem it if the code spreads"
-          value={`${count(state.members.people)} members`}
-          hot
+          label="Difference per plan, per year"
+          value={money(apple - whop, { cents: true })}
         />
-        <Row label="Discount" value={`${p.discountPct}% for ${p.durationMonths} months`} />
-        <Row label="Redemption cap" value={count(p.maxRedemptions)} />
-        <Row
-          label="Worst case if fully redeemed"
-          value={money(action.maxCost)}
-          hot
-        />
-        <Row label="Full price per plan" value={`${money(monthly, { cents: true })}/mo`} />
+        <Row label="Plans currently billed by Apple" value={count(state.members.payingPlans)} />
+      </div>
+    )
+  }
+
+  if (action.type === 'whop.affiliate.enable' || action.type === 'whop.affiliate.set_rate') {
+    const p = action.params as ActionParams['whop.affiliate.enable']
+    const perPlanYear = (state.revenue.yearlyPrice * p.ratePct) / 100
+    ledger = (
+      <div className="mt-3 divide-y divide-line-soft border-t border-line-soft pt-1">
+        <Row label="Commission rate" value={`${p.ratePct}% recurring`} hot />
+        <Row label="Paid per referred plan, per year" value={`−${money(perPlanYear, { cents: true })}`} hot />
+        <Row label="You keep" value={money(state.revenue.yearlyPrice - perPlanYear, { cents: true })} />
+        <Row label="Worst case over the first 90 days" value={money(action.maxCost)} hot />
       </div>
     )
   }

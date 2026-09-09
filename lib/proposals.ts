@@ -55,14 +55,134 @@ function act<K extends ActionType>(cfg: {
   } as ProposedAction
 }
 
-/* The one you should reject. */
+/* The biggest structural move available, and it is a Whop one. */
+const sellOnWhop = act({
+  id: 'p_whop_plan',
+  type: 'whop.plan.create',
+  params: { name: 'Swolemates — crew plan', price: 69.99, billing: 'yearly', seats: 5 },
+  headline: 'Sell the crew plan on Whop as well as the App Store',
+  rationale:
+    'Every plan sold through Apple loses 15% before it reaches you. The same plan on Whop keeps all but the platform fee, and it puts a real web checkout in front of the people already buying merch from you. Nothing changes for existing subscribers.',
+  evidence: [
+    'Apple takes 15% of $69.99 under the Small Business Program',
+    '4,475 paying plans, all billed through Apple today',
+    '8,400 people reachable on Whop already',
+  ],
+  expectedImpact: {
+    metric: 'Kept per plan',
+    direction: 'up',
+    estimate: '+$8.40 of every $69.99',
+    confidence: 'high',
+  },
+  reversibility: 'instant',
+  goalContribution: {
+    monthlyDelta: 1240,
+    basis:
+      'If two fifths of the book renews on Whop instead of Apple, the fee difference on 4,475 plans is about $1,240/mo — revenue you already earned and were giving away.',
+  },
+  conflict: {
+    label: 'Two billing systems, one entitlement',
+    detail:
+      'Crew seats and rider access are keyed to the Apple original transaction id. A plan bought on Whop has no such id, so entitlement, the rider cascade and the 3-day grace all need a second path before anyone can actually buy one.',
+  },
+})
+
+/* The one you should modify. */
+const affiliates = act({
+  id: 'p_whop_affiliates',
+  type: 'whop.affiliate.enable',
+  params: { ratePct: 50, cookieWindowDays: 30 },
+  headline: 'Turn on Whop affiliates at 50% recurring for fitness creators',
+  rationale:
+    'Whop is full of fitness creators who already sell to exactly the people a crew product needs, and they only get paid when a plan does. It moves acquisition from fixed cost to variable with nothing spent up front — which matters while Whop Ads CPA is drifting.',
+  evidence: [
+    'Affiliates: never enabled',
+    'Whop Ads CPA $38, up from $27 over 30 days',
+    '4,475 paying plans as a base to pay commission from',
+  ],
+  expectedImpact: {
+    metric: 'Blended cost per plan',
+    direction: 'down',
+    estimate: '-$9 to -$16',
+    confidence: 'medium',
+  },
+  reversibility: 'instant',
+  goalContribution: {
+    monthlyDelta: 2980,
+    basis:
+      'Roughly 220 referred plans over a quarter at $69.99, net of commission, is about $2,980/mo of added run-rate.',
+  },
+  conflict: {
+    label: '50% is recurring, not one-off',
+    detail:
+      'A Whop affiliate rate applies to every renewal for as long as the member stays, so half of a $69.99 plan leaves every year, not just the first. The rate is the whole decision here.',
+  },
+})
+
+const bounty = act({
+  id: 'p_whop_bounty',
+  type: 'whop.bounty.create',
+  params: {
+    title: 'Bring a crew',
+    rewardPerConversion: 10,
+    budget: 2400,
+    goal: '240 verified paid plans',
+  },
+  headline: 'Open a $10-per-plan bounty on Whop capped at $2,400',
+  rationale:
+    'A bounty buys a plan at $10 against $38 on Whop Ads, and only pays on verified conversions. Whop escrows the pool up front, so the exposure is exactly the budget and nothing more.',
+  evidence: [
+    'Whop Ads CPA $38 vs a $10 bounty reward',
+    'Bounties: never used',
+    '8,400 people reachable on Whop',
+  ],
+  expectedImpact: {
+    metric: 'New paying plans',
+    direction: 'up',
+    estimate: '+120 to +240',
+    confidence: 'low',
+  },
+  reversibility: 'costly',
+  goalContribution: {
+    monthlyDelta: 1050,
+    basis: '180 verified plans at $69.99, minus the $2,400 escrow, is about $1,050/mo of new run-rate.',
+  },
+})
+
+const adsCut = act({
+  id: 'p_whop_ads_rebudget',
+  type: 'whop.ads.campaign.adjust_budget',
+  params: { campaignId: 'whop_discover', newDailyBudget: 120 },
+  headline: 'Cut Whop Discover from $180 to $120/day while CPA is drifting',
+  rationale:
+    'CPA on this campaign moved from $27 to $38 over 30 days with no creative change, so holding the budget flat buys the same plan for 41% more. Cutting to $120 keeps it in market and learning without funding the worse cohort.',
+  evidence: [
+    'CPA $38, up from $27 over 30 days',
+    '$5,240 spent in 30 days for 138 plans',
+    '$180/day current budget',
+  ],
+  expectedImpact: {
+    metric: 'Daily ad spend',
+    direction: 'down',
+    estimate: '-$60/day',
+    confidence: 'high',
+  },
+  reversibility: 'instant',
+  goalContribution: {
+    monthlyDelta: 0,
+    basis:
+      'Cutting spend adds no MRR. It stops $60/day buying plans at a CPA that no longer pays back inside a year, which protects the runway the goal needs.',
+  },
+})
+
+/* The one you should reject — and the one thing here Whop cannot touch. */
 const paywall = act({
   id: 'p_paywall_day0',
   type: 'swolemates.paywall.set_mode',
   params: { mode: 'day0' },
-  headline: 'Move the ask back to day 0 so trials start with a card on file',
+  headline: 'Move the in-app ask back to day 0 so trials start with a card on file',
   rationale:
-    'Server trials never auto-convert — every one of them ends in a manual ask that 69% of people decline. A day-0 StoreKit gate collects the payment method up front and lets Apple renew silently, which is how almost every subscription app in the category monetises.',
+    'Server trials never auto-convert — every one ends in a manual ask that 69% of people decline. A day-0 StoreKit gate collects the payment method up front and lets Apple renew silently, which is how almost every subscription app in the category monetises.',
   evidence: [
     'Server trial → paid 31.4%, down from 38.1%',
     '1,240 expired trials that never paid',
@@ -87,132 +207,6 @@ const paywall = act({
   },
 })
 
-/* The one you should modify. */
-const offer = act({
-  id: 'p_offer_winback',
-  type: 'swolemates.offer_code.create',
-  params: {
-    name: 'COMEBACK50',
-    discountPct: 50,
-    durationMonths: 12,
-    audience: 'expired_trials',
-    maxRedemptions: 1240,
-  },
-  headline: 'Win back 1,240 expired trials with 50% off for a year',
-  rationale:
-    'These people finished a 14-day trial and said no at the ask. They already built a streak and in many cases a crew, so the product has been proven to them — the price is the only open question. A deep offer code is the fastest way to test that.',
-  evidence: [
-    '1,240 trials expired without paying',
-    'Server trial → paid 31.4%, down from 38.1%',
-    'Yearly plan $69.99, about $5.83/mo',
-  ],
-  expectedImpact: {
-    metric: 'Recovered plans',
-    direction: 'up',
-    estimate: '+90 to +160',
-    confidence: 'medium',
-  },
-  reversibility: 'costly',
-  goalContribution: {
-    monthlyDelta: 1930,
-    basis:
-      'About 120 redemptions at half price now, renewing at full price later, is roughly $1,930/mo of run-rate once the discount lapses.',
-  },
-  conflict: {
-    label: 'Apple offer codes are shareable',
-    detail:
-      'A one-time code can be posted anywhere and redeemed by anyone eligible, including people who would have paid full price. The discount, the duration and the redemption cap are the only things containing it.',
-  },
-})
-
-const crewNudge = act({
-  id: 'p_crew_nudge',
-  type: 'swolemates.nudge.campaign',
-  params: {
-    fn: 'crew-invite-nudge',
-    audience: 'trial_no_crew',
-    audienceSize: 1180,
-    maxSends: 1180,
-    days: 10,
-  },
-  headline: 'Run crew-invite-nudge at the 1,180 trials with nobody accepted yet',
-  rationale:
-    'A trial user with an empty crew is using a single-player version of a social product, and they convert worst. Two accepted Swolemates by day 3 is the activation bar, and this cohort has none. The campaign is bounded and stops the moment someone accepts.',
-  evidence: [
-    '1,180 live trials with no accepted crew invite',
-    'Crew invite accept rate 38.6% over 7 days',
-    '1,795 healthy crews of 4,475 plans',
-  ],
-  expectedImpact: {
-    metric: 'Healthy crews',
-    direction: 'up',
-    estimate: '+120 to +200',
-    confidence: 'medium',
-  },
-  reversibility: 'instant',
-  goalContribution: {
-    monthlyDelta: 2760,
-    basis:
-      'Crew activation is the primary trial-to-paid motion. Moving 160 trials into a real crew at the cohort conversion rate is roughly 50 extra plans a month, about $2,760/mo.',
-  },
-})
-
-const asaNew = act({
-  id: 'p_asa_today_tab',
-  type: 'asa.campaign.create',
-  params: {
-    name: 'Today tab — New Year habit',
-    placement: 'today_tab',
-    dailyBudget: 600,
-    keywordTheme: 'habit tracker, workout streak, accountability',
-  },
-  headline: 'Open a $600/day Today-tab campaign ahead of January',
-  rationale:
-    'Search results is the only placement running and its CPA has drifted from $29 to $41. Today tab reaches people who are not already searching for a fitness app, which is where a habit product should be shopping in the run-up to January.',
-  evidence: [
-    'One active campaign, $220/day on search results',
-    'CPA $41, up from $29 over 30 days',
-    '9,400 installs in 30 days',
-  ],
-  expectedImpact: {
-    metric: 'New paying plans',
-    direction: 'up',
-    estimate: '+180 to +320/mo',
-    confidence: 'low',
-  },
-  reversibility: 'instant',
-  goalContribution: {
-    monthlyDelta: 1150,
-    basis: 'At a $45 blended CPA, $600/day buys roughly 200 plans a month, about $1,150/mo added.',
-  },
-})
-
-const asaCut = act({
-  id: 'p_asa_rebudget',
-  type: 'asa.campaign.adjust_budget',
-  params: { campaignId: 'asa_search_core', newDailyBudget: 140 },
-  headline: 'Cut search results from $220 to $140/day while CPA is drifting',
-  rationale:
-    'CPA on this campaign moved from $29 to $41 over 30 days with no creative change, so holding the budget flat buys the same plan for 41% more. Cutting to $140 keeps it in market and learning without funding the worse cohort.',
-  evidence: [
-    'CPA $41, up from $29 over 30 days',
-    '$6,180 spent in 30 days for 151 plans',
-    '$220/day current budget',
-  ],
-  expectedImpact: {
-    metric: 'Daily ad spend',
-    direction: 'down',
-    estimate: '-$80/day',
-    confidence: 'high',
-  },
-  reversibility: 'instant',
-  goalContribution: {
-    monthlyDelta: 0,
-    basis:
-      'Cutting spend adds no MRR. It stops $80/day buying plans at a CPA that no longer pays back inside a year, which protects the runway the goal needs.',
-  },
-})
-
 const watch: Observation = {
   kind: 'observation',
   id: 'p_watch_recap',
@@ -225,17 +219,20 @@ const watch: Observation = {
     '92 trials expiring in the next 3 days will meet the broken ask',
   ],
   recommendation:
-    'Fix the timeout first. Re-read server trial conversion on the cohort that expires after the fix lands, and hold the offer code until then.',
+    'Fix the timeout first. Re-read server trial conversion on the cohort that expires after the fix lands, and hold any discount until then.',
   watchUntil: 'trial_recap() back under its timeout',
 }
 
-/** Ordered by decision weight — the money you could lose descends down the page. */
+/**
+ * Whop first. The structural move leads, then the growth surfaces by weight,
+ * then the one lever Whop cannot reach, then what not to do.
+ */
 export const SEED_BRIEF: Brief = {
   generatedAtISO: `${TODAY}T06:04:00.000Z`,
   lede:
-    'Server-trial conversion fell to 31.4% from 38.1% and trial_recap() started timing out on Sep 5 — the personalised day-14 ask is silently falling back to the generic pitch, so treat the conversion drop as a bug until that is fixed.',
+    'Server-trial conversion fell to 31.4% from 38.1% while trial_recap() started timing out on Sep 5 — but the bigger number is that every plan still bills through Apple, which takes 15% before you see it.',
   source: 'seed',
-  proposals: [offer, paywall, crewNudge, asaNew, asaCut, watch],
+  proposals: [sellOnWhop, affiliates, bounty, adsCut, paywall, watch],
 }
 
 export function freshBrief(): Brief {

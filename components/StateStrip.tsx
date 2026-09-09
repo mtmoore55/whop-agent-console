@@ -123,14 +123,14 @@ export function StateStrip() {
           )} owners who have nobody. Crew activation is our primary trial-to-paid motion. What moves this most?`}
         />
         <Cell
-          label="Search Ads CPA"
+          label="Whop Ads CPA"
           value={camp ? money(camp.cpa) : '—'}
           tone={camp && camp.cpa > camp.cpaPrior ? 'bad' : 'ink'}
           sub={camp ? `↑ from ${money(camp.cpaPrior)}` : 'no campaigns'}
-          askLabel="Search Ads CPA"
+          askLabel="Whop Ads CPA"
           ask={
             camp
-              ? `Apple Search Ads CPA went from ${money(camp.cpaPrior)} to ${money(
+              ? `Whop Ads CPA went from ${money(camp.cpaPrior)} to ${money(
                   camp.cpa,
                 )} with no creative change, on ${money(
                   camp.dailyBudget,
@@ -138,7 +138,7 @@ export function StateStrip() {
                   state.revenue.yearlyPrice,
                   { cents: true },
                 )}. Is this still paying back?`
-              : 'We have no active Search Ads campaigns. Is paid acquisition worth starting given the goal?'
+              : 'We have no active Whop Ads campaigns. Is paid acquisition worth starting given the goal?'
           }
         />
         <Cell

@@ -16,29 +16,30 @@ import { count, money } from './format'
  */
 
 export const ACTION_LABELS: Record<ActionType, string> = {
-  'swolemates.nudge.campaign': 'Run nudge campaigns',
-  'swolemates.push.broadcast': 'Push to members',
-  'swolemates.email.campaign': 'Email members',
-  'swolemates.offer_code.create': 'Create offer codes',
-  'swolemates.pricing.update': 'Change the subscription price',
-  'swolemates.trial.set_length': 'Change the trial length',
-  'swolemates.paywall.set_mode': 'Change the paywall gate',
-  'swolemates.badge.schedule_monthly': 'Schedule badge artwork',
-  'asa.campaign.create': 'Launch Search Ads campaigns',
-  'asa.campaign.adjust_budget': 'Adjust Search Ads budgets',
-  'asa.campaign.pause': 'Pause Search Ads campaigns',
+  'whop.plan.create': 'Sell the plan on Whop',
+  'whop.promo.create': 'Create Whop promos',
+  'whop.app.publish': 'Publish the Whop app',
+  'whop.affiliate.enable': 'Enable Whop affiliates',
+  'whop.affiliate.set_rate': 'Set the affiliate rate',
+  'whop.bounty.create': 'Create Whop bounties',
+  'whop.ads.campaign.create': 'Launch Whop Ads campaigns',
+  'whop.ads.campaign.adjust_budget': 'Adjust Whop Ads budgets',
+  'whop.ads.campaign.pause': 'Pause Whop Ads campaigns',
+  'whop.notification.send': 'Message Whop members',
   'whop.merch.promo.create': 'Create merch promos',
-  'whop.merch.product.create': 'Create merch products',
+  'swolemates.paywall.set_mode': 'Change the in-app paywall gate',
+  'swolemates.nudge.campaign': 'Run in-app nudge campaigns',
 }
 
 /**
- * The daily cap governs *agent spend* — dollars that actually leave. Apple
- * Search Ads is the only thing here that spends cash; an offer code gives up
- * revenue it never had, and a nudge costs a push notification.
+ * The daily cap governs *agent spend* — dollars that actually leave. Ads spend
+ * cash and a bounty escrows its reward pool; a promo gives up revenue it never
+ * had, and a nudge costs a push notification.
  */
 export const SPEND_ACTION_TYPES: ReadonlySet<ActionType> = new Set<ActionType>([
-  'asa.campaign.create',
-  'asa.campaign.adjust_budget',
+  'whop.ads.campaign.create',
+  'whop.ads.campaign.adjust_budget',
+  'whop.bounty.create',
 ])
 
 export function countsAsSpend(type: ActionType): boolean {
@@ -47,19 +48,19 @@ export function countsAsSpend(type: ActionType): boolean {
 
 export const DEFAULT_POLICY: Policy = {
   perType: {
-    'swolemates.nudge.campaign': 'ask',
-    'swolemates.push.broadcast': 'ask',
-    'swolemates.email.campaign': 'ask',
-    'swolemates.offer_code.create': 'ask',
-    'swolemates.pricing.update': 'never',
-    'swolemates.trial.set_length': 'ask',
-    'swolemates.paywall.set_mode': 'ask',
-    'swolemates.badge.schedule_monthly': 'auto',
-    'asa.campaign.create': 'ask',
-    'asa.campaign.adjust_budget': 'auto',
-    'asa.campaign.pause': 'auto',
+    'whop.plan.create': 'ask',
+    'whop.promo.create': 'ask',
+    'whop.app.publish': 'ask',
+    'whop.affiliate.enable': 'ask',
+    'whop.affiliate.set_rate': 'auto',
+    'whop.bounty.create': 'ask',
+    'whop.ads.campaign.create': 'ask',
+    'whop.ads.campaign.adjust_budget': 'auto',
+    'whop.ads.campaign.pause': 'auto',
+    'whop.notification.send': 'ask',
     'whop.merch.promo.create': 'ask',
-    'whop.merch.product.create': 'ask',
+    'swolemates.paywall.set_mode': 'ask',
+    'swolemates.nudge.campaign': 'ask',
   },
   dailySpendCapUSD: 400,
   perActionCostCeilingUSD: 250,

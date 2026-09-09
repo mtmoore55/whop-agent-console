@@ -95,28 +95,36 @@ validated against it and anything malformed is dropped.
 
 ```ts
 type ActionType =
-  // The money model — App Store levers
-  | 'swolemates.pricing.update'
-  | 'swolemates.trial.set_length'
-  | 'swolemates.paywall.set_mode'      // app_config.trial_gate_mode
-  | 'swolemates.offer_code.create'
-  // Reaching members — their own backend
-  | 'swolemates.nudge.campaign'        // the bounded edge-function campaigns
-  | 'swolemates.push.broadcast'
-  | 'swolemates.email.campaign'
-  | 'swolemates.badge.schedule_monthly'
-  // Acquisition
-  | 'asa.campaign.create'
-  | 'asa.campaign.adjust_budget'
-  | 'asa.campaign.pause'
-  // Merch, on Whop
+  // Selling Swolemates on Whop
+  | 'whop.plan.create'          // the plan on Whop's checkout, not only Apple's
+  | 'whop.promo.create'
+  | 'whop.app.publish'          // into the Whop App Store
+  // Whop's growth surfaces
+  | 'whop.affiliate.enable'
+  | 'whop.affiliate.set_rate'
+  | 'whop.bounty.create'        // Workforce bounty, reward pool escrowed
+  | 'whop.ads.campaign.create'
+  | 'whop.ads.campaign.adjust_budget'
+  | 'whop.ads.campaign.pause'
+  | 'whop.notification.send'
   | 'whop.merch.promo.create'
-  | 'whop.merch.product.create'
+  // The app's own levers, for what Whop cannot reach
+  | 'swolemates.paywall.set_mode'
+  | 'swolemates.nudge.campaign'
 ```
 
-Swolemates monetises through Apple, not Whop, so the action set is mostly its own product
-levers. Whop keeps the merch store. This is the point made in §1: the console pattern
-transfers, the Whop-only action set does not.
+**Eleven of thirteen are Whop actions, and the system prompt tells the agent to prefer
+them** — when two proposals would move the goal similarly, propose the Whop one; when it
+reaches inside the app instead, it has to say why Whop cannot touch that problem. The
+target is at most one non-Whop action per brief.
+
+That is a real bet, not decoration. Whop is where the fee advantage, the affiliate network,
+the escrowed bounty pool, the ad inventory and the existing 8,400-member audience are. The
+app's own levers only reach people who already installed it.
+
+Every plan bills through Apple today, which takes 15% under the Small Business Program —
+$10.50 of every $69.99. That is the single largest fact in the brief and the reason
+`whop.plan.create` leads it.
 
 Every proposed action carries:
 
@@ -302,26 +310,24 @@ second undo afterwards is still correct. Only `instant` actions offer it; `costl
 
 ## 5. The two proposals that matter
 
-**The one you should reject** — `swolemates.paywall.set_mode` back to `day0`: put the ask
-at day 0 so trials start with a card on file, which is how nearly every subscription app in
-the category monetises. Real upside, and the agent's arithmetic is sound. But this is the
-exact change reverted on 2026-08-18: under the day-0 wall, 262 of 268 non-invitee signups
-met it and **14% ever finished onboarding**. Retention here is crew-gated and crews only
-form between people already inside the app, so the wall suppressed the thing the product
-needs to work. The console surfaces that history adjacent to the proposal and does **not**
-auto-block. The human catches it. Note the reversibility: the flag flips back instantly,
-but the signups lost while it is on do not come back — so it is `costly`, not `instant`.
+**The one you should reject** — `swolemates.paywall.set_mode` back to `day0`, and
+deliberately the one non-Whop action in the brief. Put the ask at day 0 so trials start
+with a card on file. Real upside, sound arithmetic. But it is the exact change reverted on
+2026-08-18: under the day-0 wall, 262 of 268 non-invitee signups met it and **14% ever
+finished onboarding**. Retention is crew-gated and crews only form between people already
+inside the app, so the wall suppressed the thing the product needs to work. The console
+surfaces that history adjacent to the proposal and does **not** auto-block. Reversibility
+is `costly`, not `instant`: the flag flips back, the lost signups do not.
 
-**The one you should modify** — `swolemates.offer_code.create`: 50% off for 12 months to
-all 1,240 expired trials. $43,394 of revenue at risk, and Apple offer codes are shareable,
-so anyone eligible can redeem one that leaks — including people who would have paid full
-price. The right move is to modify it down: lower discount, shorter duration, capped
-redemptions.
+**The one you should modify** — `whop.affiliate.enable` at 50% recurring. $7,839 of
+commission exposure over the first 90 days, and the conflict is that a Whop affiliate rate
+applies to **every renewal**, not just the first — half of $69.99 leaving every year for as
+long as the member stays. The rate is the whole decision, and Modify is where you make it.
 
-The rest are genuinely good: run `crew-invite-nudge` at the 1,180 trials with nobody
-accepted, open a Today-tab Search Ads campaign before January (blocked by the daily spend
-cap, with a one-time override), cut the drifting search campaign (auto-eligible), and one
-non-action flag on `trial_recap()` recommending nothing be read as demand until it is fixed.
+The rest lead with Whop: sell the crew plan on Whop and stop giving Apple $8.40 a plan,
+open a $10-per-plan bounty against a $38 Whop Ads CPA (blocked by the daily spend cap, with
+a one-time override), cut the drifting Whop Discover campaign (auto-eligible), and one
+non-action flag on `trial_recap()`.
 
 ## 6. The agent
 

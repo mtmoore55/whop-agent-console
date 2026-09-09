@@ -303,7 +303,7 @@ function reducer(s: ConsoleState, m: Msg): ConsoleState {
         log.unshift({
           id: `log_${m.id}_${Date.now()}`,
           proposalId: m.id,
-          type: proposal.kind === 'action' ? proposal.type : 'swolemates.push.broadcast',
+          type: proposal.kind === 'action' ? proposal.type : 'whop.notification.send',
           headline: proposal.headline,
           lifecycle: [
             'proposed',

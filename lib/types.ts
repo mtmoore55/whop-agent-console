@@ -12,11 +12,10 @@
 
 export type BillingPeriod = 'monthly' | 'yearly'
 
-export interface AsaCampaign {
+export interface WhopAdCampaign {
   id: string
   name: string
-  /** Apple Search Ads placement. */
-  placement: 'search_results' | 'search_tab' | 'today_tab'
+  placement: 'discover' | 'feed' | 'checkout'
   dailyBudget: number
   status: 'active' | 'paused'
   /** Cost per paying plan, not per install. */
@@ -133,7 +132,20 @@ export interface BusinessState {
     payingCancels24h: number
     atRiskMrr: number
   }
-  ads: { campaigns: AsaCampaign[] }
+  /** Whop Ads. Cost per paying plan, not per install. */
+  ads: { campaigns: WhopAdCampaign[] }
+  whop: {
+    /** Whether the Swolemates plan is sold on Whop as well as the App Store. */
+    planListed: boolean
+    /** Apple's cut of a $69.99 plan under the Small Business Program. */
+    appleFeePct: number
+    whopFeePct: number
+    affiliates: { enabled: boolean; ratePct: number | null }
+    bounties: { id: string; title: string; budget: number; status: 'open' | 'closed' }[]
+    appPublished: boolean
+    /** People reachable through Whop itself — members of the merch store. */
+    reachableMembers: number
+  }
   appStore: {
     rating: number
     ratingCount: number
@@ -164,34 +176,37 @@ export interface BusinessState {
 /* ------------------------------------------------------------------ */
 
 export type ActionType =
-  | 'swolemates.nudge.campaign'
-  | 'swolemates.push.broadcast'
-  | 'swolemates.email.campaign'
-  | 'swolemates.offer_code.create'
-  | 'swolemates.pricing.update'
-  | 'swolemates.trial.set_length'
-  | 'swolemates.paywall.set_mode'
-  | 'swolemates.badge.schedule_monthly'
-  | 'asa.campaign.create'
-  | 'asa.campaign.adjust_budget'
-  | 'asa.campaign.pause'
+  // Selling Swolemates on Whop
+  | 'whop.plan.create'
+  | 'whop.promo.create'
+  | 'whop.app.publish'
+  // Whop's growth surfaces
+  | 'whop.affiliate.enable'
+  | 'whop.affiliate.set_rate'
+  | 'whop.bounty.create'
+  | 'whop.ads.campaign.create'
+  | 'whop.ads.campaign.adjust_budget'
+  | 'whop.ads.campaign.pause'
+  | 'whop.notification.send'
   | 'whop.merch.promo.create'
-  | 'whop.merch.product.create'
+  // The app's own levers, for the things Whop cannot reach
+  | 'swolemates.paywall.set_mode'
+  | 'swolemates.nudge.campaign'
 
 export const ACTION_TYPES: ActionType[] = [
-  'swolemates.nudge.campaign',
-  'swolemates.push.broadcast',
-  'swolemates.email.campaign',
-  'swolemates.offer_code.create',
-  'swolemates.pricing.update',
-  'swolemates.trial.set_length',
-  'swolemates.paywall.set_mode',
-  'swolemates.badge.schedule_monthly',
-  'asa.campaign.create',
-  'asa.campaign.adjust_budget',
-  'asa.campaign.pause',
+  'whop.plan.create',
+  'whop.promo.create',
+  'whop.app.publish',
+  'whop.affiliate.enable',
+  'whop.affiliate.set_rate',
+  'whop.bounty.create',
+  'whop.ads.campaign.create',
+  'whop.ads.campaign.adjust_budget',
+  'whop.ads.campaign.pause',
+  'whop.notification.send',
   'whop.merch.promo.create',
-  'whop.merch.product.create',
+  'swolemates.paywall.set_mode',
+  'swolemates.nudge.campaign',
 ]
 
 export type NudgeAudience =
@@ -202,56 +217,57 @@ export type NudgeAudience =
   | 'riders_after_owner_lapse'
 
 export interface ActionParams {
-  'swolemates.nudge.campaign': {
-    fn: string
-    audience: NudgeAudience
-    audienceSize: number
-    /** Bounded on purpose — notifications.md caps campaign cadence. */
-    maxSends: number
-    days: number
+  'whop.plan.create': {
+    name: string
+    price: number
+    billing: 'yearly' | 'monthly'
+    /** Whop takes a platform fee; Apple takes 30% (15% under Small Business). */
+    seats: number
   }
-  'swolemates.push.broadcast': {
-    audience: NudgeAudience | 'everyone'
-    recipientCount: number
+  'whop.promo.create': {
+    code: string
+    discountPct: number
+    durationDays: number
+    maxRedemptions: number
+    appliesTo: 'plan' | 'merch'
+  }
+  'whop.app.publish': { name: string; category: string; blurb: string }
+  'whop.affiliate.enable': { ratePct: number; cookieWindowDays: number }
+  'whop.affiliate.set_rate': { ratePct: number }
+  'whop.bounty.create': {
     title: string
-    body: string
+    rewardPerConversion: number
+    budget: number
+    goal: string
   }
-  'swolemates.email.campaign': {
-    audience: NudgeAudience
+  'whop.ads.campaign.create': {
+    name: string
+    placement: 'discover' | 'feed' | 'checkout'
+    dailyBudget: number
+    audience: string
+  }
+  'whop.ads.campaign.adjust_budget': { campaignId: string; newDailyBudget: number }
+  'whop.ads.campaign.pause': { campaignId: string }
+  'whop.notification.send': {
+    audience: 'whop_members' | 'plan_holders' | 'merch_buyers'
     recipientCount: number
     subject: string
+    body: string
   }
-  'swolemates.offer_code.create': {
-    name: string
-    discountPct: number
-    durationMonths: number
-    audience: 'expired_trials' | 'lapsed_payers' | 'riders'
-    maxRedemptions: number
-  }
-  'swolemates.pricing.update': {
-    period: BillingPeriod
-    newPrice: number
-    /** Apple requires consent from existing subscribers for an increase. */
-    appliesTo: 'new_only' | 'everyone'
-  }
-  'swolemates.trial.set_length': { days: number }
-  'swolemates.paywall.set_mode': { mode: 'server14' | 'day0' }
-  'swolemates.badge.schedule_monthly': { months: number; coach: string }
-  'asa.campaign.create': {
-    name: string
-    placement: 'search_results' | 'search_tab' | 'today_tab'
-    dailyBudget: number
-    keywordTheme: string
-  }
-  'asa.campaign.adjust_budget': { campaignId: string; newDailyBudget: number }
-  'asa.campaign.pause': { campaignId: string }
   'whop.merch.promo.create': {
     code: string
     discountPct: number
     durationDays: number
     maxRedemptions: number
   }
-  'whop.merch.product.create': { name: string; price: number }
+  'swolemates.paywall.set_mode': { mode: 'server14' | 'day0' }
+  'swolemates.nudge.campaign': {
+    fn: string
+    audience: NudgeAudience
+    audienceSize: number
+    maxSends: number
+    days: number
+  }
 }
 
 export type Reversibility = 'instant' | 'costly' | 'irreversible'
