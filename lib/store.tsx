@@ -33,7 +33,26 @@ import type {
 
 const STORAGE_KEY = 'whop-agent-console'
 /** Bump when the persisted shape changes; older payloads are dropped. */
-const STORAGE_VERSION = 3
+const STORAGE_VERSION = 4
+
+/**
+ * A version bump only helps if you remember to make one. This checks that a
+ * restored state actually carries the fields the current domain reads, so a
+ * missed bump degrades to the seed instead of crashing the page — which is
+ * exactly what happened when the demo moved from a Whop community to
+ * Swolemates and `state.trials` stopped existing.
+ */
+function looksCurrent(state: unknown): state is BusinessState {
+  const s = state as BusinessState | undefined
+  return (
+    !!s &&
+    typeof s.revenue?.mrrCommitted === 'number' &&
+    typeof s.trials?.serverToPaidPct === 'number' &&
+    typeof s.crews?.healthy === 'number' &&
+    typeof s.members?.payingPlans === 'number' &&
+    Array.isArray(s.issues)
+  )
+}
 /** How long an execution animation runs before state actually commits. */
 export const EXECUTE_MS = 720
 
@@ -161,6 +180,7 @@ function withParams(
 
 function fromPersisted(p: Persisted): ConsoleState {
   const base = initial()
+  if (!looksCurrent(p.state)) return { ...base, hydrated: true }
   // An agent-generated brief is data, not code, so it round-trips verbatim.
   const policy = p.policy ?? base.policy
   const goal = p.goal ?? base.goal
@@ -437,7 +457,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY)
       const parsed = raw ? (JSON.parse(raw) as Persisted) : null
-      if (parsed && parsed.v === STORAGE_VERSION) {
+      if (parsed && parsed.v === STORAGE_VERSION && looksCurrent(parsed.state)) {
         dispatch({ t: 'hydrate', payload: fromPersisted(parsed) })
         return
       }
