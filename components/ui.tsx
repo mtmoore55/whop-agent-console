@@ -57,6 +57,25 @@ const TAG: Record<Tone, string> = {
   brand: 'bg-brand-surface text-brand-text',
 }
 
+/**
+ * The chips on the agent bar are compressed to two words and were unreadable
+ * without explanation. Native `title` is slow and invisible on touch, so this
+ * is a real popover on hover and on keyboard focus.
+ */
+export function Hint({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <span className="group/hint relative inline-flex items-center">
+      {children}
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-max max-w-[280px] -translate-x-1/2 rounded-lg border border-line bg-gray-3 px-2.5 py-2 text-[12px] font-normal leading-snug text-mute opacity-0 shadow-lg shadow-black/40 transition-opacity duration-100 group-hover/hint:opacity-100 group-focus-within/hint:opacity-100"
+      >
+        {label}
+      </span>
+    </span>
+  )
+}
+
 export function Tag({ tone = 'gray', children }: { tone?: Tone; children: React.ReactNode }) {
   return (
     <span

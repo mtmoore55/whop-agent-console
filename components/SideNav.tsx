@@ -87,10 +87,15 @@ function Switcher({ collapsed, name }: { collapsed: boolean; name: string }) {
         <Icon name="customers" />
       </span>
       <span
-        className={`${square} bg-brand-surface text-[22px] font-semibold text-brand-text ring-2 ring-ink`}
+        className={`${square} overflow-hidden bg-[linear-gradient(160deg,#8fd9ec,#5fbbd6)] ring-2 ring-ink`}
         title={name}
       >
-        {name.slice(0, 1)}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/swolemates-mark.png"
+          alt={name}
+          className="size-full scale-[1.08] object-contain"
+        />
       </span>
       {!collapsed && (
         <span className={`${square} bg-white/[0.07] text-faint`} title="Start a business">
